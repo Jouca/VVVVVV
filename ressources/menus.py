@@ -66,8 +66,8 @@ def affichage_menu_histoire(screen, var):
         var["players"]["viridian"].draw(screen)
         var["players"]["viridian"].update(var)
         for i in var["room"].get_rects():
-            pass
             #pygame.draw.rect(screen, couleur["red"], i, 1)
+            pass
     var["timeAnimation"] += 1
     return var
 

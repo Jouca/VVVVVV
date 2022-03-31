@@ -59,13 +59,15 @@ class Player:
     def __init__(self, player):
         self.player_name = player
         self.gravity = "bottom"
-        self.direction = pygame.math.Vector2(300, 300)
-        self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-        self.speed = 10
+        self.direction = pygame.math.Vector2(433, 568)
+        self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 62)
+        self.speed = 12
         self.directions = {"left": False, "right": True,  "up": False, "down": True}
         self.player_sprites_dict = []
         self.platforms = []
         self.emotion = "happy"
+        self.walk_animation_counter = 0
+        self.walk_animation_type = "normal"
         self.player_sprites_indexes = {
             "happy_down_left": 0,
             "happy_down_right": 1,
@@ -75,11 +77,17 @@ class Player:
             "sad_down_right": 5,
             "sad_up_left": 6,
             "sad_up_right": 7,
-
         }
-        self.move_left_enabled = True
-        self.move_right_enabled = True
-        self.gravity_enabled = True
+        self.player_sprites_moving_indexes = {
+            "happy_down_left": 0,
+            "happy_down_right": 1,
+            "happy_up_left": 2,
+            "happy_up_right": 3,
+            "sad_down_left": 4,
+            "sad_down_right": 5,
+            "sad_up_left": 6,
+            "sad_up_right": 7,
+        }
         player_sprites = crop("./ressources/sprites/player.png", 63, 30)
         player_sprite_moving = crop("./ressources/sprites/player_moving.png", 63, 36, (38, 65))
         for index in range(len(player_sprites)):
@@ -88,33 +96,47 @@ class Player:
                 player_sprite_moving[index]
             ])
 
+    def walk_animation(self, var):
+        if var["left"]:
+            self.walk_animation_counter += 2
+            if self.walk_animation_type == "normal" and self.walk_animation_counter == 20:
+                self.walk_animation_type = "moving"
+                self.walk_animation_counter = 0
+            elif self.walk_animation_type == "moving" and self.walk_animation_counter == 20:
+                self.walk_animation_type = "normal"
+                self.walk_animation_counter = 0
+        elif var["right"]:
+            self.walk_animation_counter += 2
+            if self.walk_animation_type == "normal" and self.walk_animation_counter == 20:
+                self.walk_animation_type = "moving"
+                self.walk_animation_counter = 0
+            elif self.walk_animation_type == "moving" and self.walk_animation_counter == 20:
+                self.walk_animation_type = "normal"
+                self.walk_animation_counter = 0
+        else:
+            self.walk_animation_counter = 0
+            self.walk_animation_type = "normal"
+
     def get_index(self):
         if self.emotion == "happy":
             if self.directions["up"]:
                 if self.directions["left"]:
                     return self.player_sprites_indexes["happy_up_right"]
-                else:
-                    return self.player_sprites_indexes["happy_up_left"]
-            else:
-                if self.directions["left"]:
-                    return self.player_sprites_indexes["happy_down_right"]
-                else:
-                    return self.player_sprites_indexes["happy_down_left"]
-        else:
-            if self.directions["up"]:
-                if self.directions["left"]:
-                    return self.player_sprites_indexes["sad_up_right"]
-                else:
-                    return self.player_sprites_indexes["sad_up_left"]
-            else:
-                if self.directions["left"]:
-                    return self.player_sprites_indexes["sad_down_right"]
-                else:
-                    return self.player_sprites_indexes["sad_down_left"]
+                return self.player_sprites_indexes["happy_up_left"]
+            if self.directions["left"]:
+                return self.player_sprites_indexes["happy_down_right"]
+            return self.player_sprites_indexes["happy_down_left"]
+        if self.directions["up"]:
+            if self.directions["left"]:
+                return self.player_sprites_indexes["sad_up_right"]
+            return self.player_sprites_indexes["sad_up_left"]
+        if self.directions["left"]:
+            return self.player_sprites_indexes["sad_down_right"]
+        return self.player_sprites_indexes["sad_down_left"]
 
-    def get_specific_sprite(self, is_running=False):
+    def get_specific_sprite(self):
         index = self.get_index()
-        object = colored_players[self.player_name]["moving" if is_running is True else "normal"][index]
+        object = colored_players[self.player_name][self.walk_animation_type][index]
         return convert_PIL_to_pygame(object)
 
     def get_sprites(self):
@@ -124,83 +146,87 @@ class Player:
         self.platforms = platforms
 
     def change_gravity(self):
-        if self.gravity == "bottom":
-            self.gravity_enabled = True
-            self.directions["up"] = True
-            self.directions["down"] = False
-            self.gravity = "top"
-            self.direction.y -= self.speed
-            self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-        else:
-            self.gravity_enabled = True
-            self.gravity = "bottom"
-            self.directions["up"] = False
-            self.directions["down"] = True
-            self.direction.y += self.speed
-            self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
+        for platform in self.platforms:
+            if self.hitbox.colliderect(platform.x, platform.y - 12, platform.width, platform.height):
+                if self.gravity == "bottom":
+                    self.gravity_enabled = True
+                    self.directions["up"] = True
+                    self.directions["down"] = False
+                    self.gravity = "top"
+                    self.direction.y -= self.speed
+                    self.hitbox.y -= self.speed
+                    break
+            elif self.hitbox.colliderect(platform.x, platform.y + 12, platform.width, platform.height):
+                if self.gravity == "top":
+                    self.gravity_enabled = True
+                    self.gravity = "bottom"
+                    self.directions["up"] = False
+                    self.directions["down"] = True
+                    self.direction.y += self.speed
+                    self.hitbox.y += self.speed
+                    break
 
     def apply_gravity(self):
-        if self.gravity_enabled:
-            if self.gravity == "bottom":
-                self.direction.y += self.speed
-                self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-            elif self.gravity == "top":
-                self.direction.y -= self.speed
-                self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
+        if self.gravity == "bottom":
+            self.direction.y += self.speed
+            self.hitbox.y += self.speed
+        if self.gravity == "top":
+            self.direction.y -= self.speed
+            self.hitbox.y -= self.speed
 
     def move(self, direction):
         if direction == "left":
-            if self.move_left_enabled:
-                self.direction.x -= self.speed
-                self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-                self.directions["left"] = True
-                self.directions["right"] = False
-                if self.move_right_enabled is False:
-                    self.move_right_enabled = True
-        elif direction == "right":
-            if self.move_right_enabled:
-                self.direction.x += self.speed
-                self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-                self.directions["left"] = False
-                self.directions["right"] = True
-                if self.move_left_enabled is False:
-                    self.move_left_enabled = True
+            self.direction.x -= (self.speed - 5)
+            self.hitbox.x -= (self.speed - 5)
+            self.directions["left"] = True
+            self.directions["right"] = False
+        if direction == "right":
+            self.direction.x += (self.speed - 5)
+            self.hitbox.x += (self.speed - 5)
+            self.directions["left"] = False
+            self.directions["right"] = True
 
     def update(self, var):
+        self.walk_animation(var)
         if var["left"]:
             self.move("left")
-        elif var["right"]:
+        if var["right"]:
             self.move("right")
         for platform in self.platforms:
-            if platform.colliderect(self.hitbox):
-                if self.hitbox.bottom > platform.top:
-                    self.direction.y = self.direction.y - 1
-                    self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-                    self.gravity_enabled = False
-                elif self.hitbox.top < platform.bottom:
-                    self.direction.y = self.direction.y + 1
-                    self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-                    self.gravity_enabled = False
-                else:
-                    self.gravity_enabled = True
-                if var["left"]:
-                    self.direction.x = self.direction.x + 1
-                    self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-                    self.directions["left"] = True
-                    self.directions["right"] = False
-                    self.move_left_enabled = False
-                elif var["right"]:
-                    self.direction.x = self.direction.x - 1
-                    self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 65)
-                    self.directions["left"] = False
-                    self.directions["right"] = True
-                    self.move_right_enabled = False
+            if self.hitbox.colliderect(platform):
+                if var["right"]:
+                    self.hitbox.right = platform.left
+                    self.direction.x = self.hitbox.x
+                    break
+                elif var["left"]:
+                    self.hitbox.left = platform.right
+                    self.direction.x = self.hitbox.x
+                    break
+        for platform in self.platforms:
+            if self.hitbox.colliderect(platform.x, platform.y - 12, platform.width, platform.height):
+                if self.gravity == "bottom":
+                    self.hitbox.bottom = platform.top - 12
+                    self.direction.y = self.hitbox.y
+            elif self.hitbox.colliderect(platform.x, platform.y + 12, platform.width, platform.height):
+                if self.gravity == "top":
+                    self.hitbox.top = platform.bottom + 12
+                    self.direction.y = self.hitbox.y
         self.apply_gravity()
+        if self.direction.x < -10:
+            self.direction.x = get_screen_size()[0] - 25
+            self.hitbox.x = get_screen_size()[0] - 25
+            var["coordinates"][0] -= 1
+            var["room"].change_room(var["coordinates"], var)
+        elif self.direction.x > get_screen_size()[0] + 5:
+            self.direction.x = 25
+            self.hitbox.x = 25
+            var["coordinates"][0] += 1
+            var["room"].change_room(var["coordinates"], var)
 
 
     def draw(self, screen):
-        pygame.draw.rect(screen, couleur_jeu["red"], self.hitbox)
-        screen.blit(self.get_specific_sprite(screen), self.direction)
+        #pygame.draw.rect(screen, couleur_jeu["red"], self.hitbox)
+        screen.blit(self.get_specific_sprite(), self.direction)
 
 
 class Object:
@@ -412,8 +438,11 @@ class Room:
 
     def update_data(self, x, y, type, data=None, order=None):
         if order == "place":
-            self.data["map_data"][x][y][type] = data[0]
-            self.data["map_data"][x][y]["color"] = data[1]
+            try:
+                self.data["map_data"][x][y][type] = data[0]
+                self.data["map_data"][x][y]["color"] = data[1]
+            except IndexError:
+                pass
         elif order == "remove":
             try:
                 self.data["map_data"][x][y] = {}

@@ -7,7 +7,7 @@ except ModuleNotFoundError:
 
 DEBUG = True
 VERSION = "V. infdev"
-screen_size = (960, 720)
+screen_size = (960, 780)
 
 # Variables importantes
 objects = Object()

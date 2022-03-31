@@ -37,7 +37,7 @@ def main():
         ),
         "timeAnimation": 0,
         "currentMap": "history",
-        "coordinates": [0, 0],
+        "coordinates": [4, 9],
         "clicked": False,
         "left_click": False,
         "right_click": False,
