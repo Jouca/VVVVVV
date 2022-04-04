@@ -50,7 +50,7 @@ def affichage_menu_principal(screen, var):
     var["menuBG"].draw()
     screen.blit(charger_ressource("/sprites/logo.png"), (200, 60))
     screen.blit(var["texts"]["subtitle"], (190, 150))
-    screen.blit(var["texts"]["version"], (730, 680))
+    screen.blit(var["texts"]["version"], (730, 750))
     var["menus"]["principal"].draw((350, 300), 40)
     return var
 
@@ -63,12 +63,27 @@ def affichage_menu_histoire(screen, var):
         stars.draw(screen)
         var["room"].draw(screen)
         var["players"]["viridian"].update_platforms(var["room"].get_rects())
-        var["players"]["viridian"].draw(screen)
+        var["players"]["viridian"].draw(screen, var)
         var["players"]["viridian"].update(var)
-        for i in var["room"].get_rects():
-            #pygame.draw.rect(screen, couleur["red"], i, 1)
-            pass
+        var["room"].draw_roomname(screen, var)
+        if var["collisions_show"]:
+            for i in var["room"].get_rects():
+                pygame.draw.rect(screen, couleur["blue"], i, 1)
     var["timeAnimation"] += 1
+    return var
+
+
+def affichage_jeu(screen, var):
+    screen.fill(couleur["black"])
+    stars.draw(screen)
+    var["room"].draw(screen)
+    var["players"]["viridian"].update_platforms(var["room"].get_rects())
+    var["players"]["viridian"].draw(screen, var)
+    var["players"]["viridian"].update(var)
+    var["room"].draw_roomname(screen, var)
+    if var["collisions_show"]:
+        for i in var["room"].get_rects():
+            pygame.draw.rect(screen, couleur["blue"], i, 1)
     return var
 
 
@@ -101,6 +116,8 @@ def affichage_menu(var, screen, clock):
         var = affichage_menu_credits(screen, var)
     elif var["menuSelect"] == "histoire":
         var = affichage_menu_histoire(screen, var)
+    elif var["menuSelect"] == "jeu":
+        var = affichage_jeu(screen, var)
     elif var["menuSelect"] == "debug":
         var = affichage_menu_debug(screen, var)
     elif var["menuSelect"] == "editeur":
@@ -108,7 +125,10 @@ def affichage_menu(var, screen, clock):
     elif var["menuSelect"] == "selectobject":
         var = affichage_selectobject(screen, var)
 
-    screen.blit(update_fps(clock), (10,0))
+    if var["debug"]:
+        font = pygame.font.SysFont("Arial", 18)
+        screen.blit(update_fps(clock), (10,0))
+        screen.blit(font.render(str(var["coordinates"]), 1, pygame.Color(255, 255, 255)), (10, 20))
     pygame.display.flip()
     return var
 
@@ -130,7 +150,7 @@ def controles_principal(var, event):
                 if check_already_started():
                     var["menuSelect"] = "play"
                 else:
-                    var["menuSelect"] = "histoire"
+                    var["menuSelect"] = "jeu"
                     stop_music()
             if var["menus"]["principal"].menuselection[0] == "en ligne":
                 var["menuSelect"] = "online mode"
@@ -141,6 +161,7 @@ def controles_principal(var, event):
             if var["menus"]["principal"].menuselection[0] == "quitter":
                 var["jeu_en_cours"] = False
     return var
+
 
 def controles_histoire(var, event):
     """
@@ -153,6 +174,32 @@ def controles_histoire(var, event):
             play_music("menu.ogg")
         elif event.key == pygame.K_SPACE:
             var["players"]["viridian"].change_gravity()
+        if var["debug"]:
+            if event.key == pygame.K_c:
+                if var["collisions_show"]:
+                    var["collisions_show"] = False
+                else:
+                    var["collisions_show"] = True
+    return var
+
+
+def controles_jeu(var, event):
+    """
+    Occupation des contrôles du menu jeu.
+    """
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_ESCAPE:
+            play_sound("menu.wav")
+            var["menuSelect"] = "principal"
+            play_music("menu.ogg")
+        elif event.key == pygame.K_SPACE:
+            var["players"]["viridian"].change_gravity()
+        if var["debug"]:
+            if event.key == pygame.K_c:
+                if var["collisions_show"]:
+                    var["collisions_show"] = False
+                else:
+                    var["collisions_show"] = True
     return var
 
 
@@ -316,6 +363,8 @@ def controles(var):
             var = controles_principal(var, event)
         elif var["menuSelect"] == "histoire":
             var = controles_histoire(var, event)
+        elif var["menuSelect"] == "jeu":
+            var = controles_jeu(var, event)
         elif var["menuSelect"] == "credits":
             var = controles_credits(var, event)
         elif var["menuSelect"] == "debug":

@@ -1,6 +1,6 @@
 import pygame
 
-from ressources.constant import screen_size
+from ressources.constant import screen_size, DEBUG
 from ressources.inits import init_screen, init_fonts, init_menu_selectors, init_texts, init_boxes, init_buttons
 from ressources.classes import UpParallax, SelectObjectMenu, Editor, Room, Player
 from ressources.functions import charger_ressource, play_music
@@ -19,6 +19,7 @@ def main():
     fonts = init_fonts()
     menus = init_menu_selectors(fonts, screen)
     var = {
+        "debug": DEBUG,
         "screen_size": screen_size,
         "width": screen_size[0],
         "heigth": screen_size[1],
@@ -55,6 +56,7 @@ def main():
         },
         "left": False,
         "right": False,
+        "collisions_show": False,
     }
 
     frame_per_second = 60

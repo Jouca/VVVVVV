@@ -212,20 +212,31 @@ class Player:
                     self.hitbox.top = platform.bottom + 12
                     self.direction.y = self.hitbox.y
         self.apply_gravity()
-        if self.direction.x < -10:
-            self.direction.x = get_screen_size()[0] - 25
-            self.hitbox.x = get_screen_size()[0] - 25
+        if self.hitbox.topleft[0] < -self.hitbox.width + 10:
+            self.direction.x = get_screen_size()[0] - self.hitbox.width
+            self.hitbox.x = get_screen_size()[0] - self.hitbox.width
             var["coordinates"][0] -= 1
             var["room"].change_room(var["coordinates"], var)
-        elif self.direction.x > get_screen_size()[0] + 5:
-            self.direction.x = 25
-            self.hitbox.x = 25
+        elif self.hitbox.topright[0] > get_screen_size()[0] + self.hitbox.width - 10:
+            self.direction.x = 1
+            self.hitbox.x = 1
             var["coordinates"][0] += 1
+            var["room"].change_room(var["coordinates"], var)
+        elif self.hitbox.bottom > 720 + self.hitbox.height - 10:
+            self.direction.y = -self.hitbox.height
+            self.hitbox.y = -self.hitbox.height
+            var["coordinates"][1] += 1
+            var["room"].change_room(var["coordinates"], var)
+        elif self.hitbox.top < -self.hitbox.height + 10:
+            self.direction.y = 720 - self.hitbox.height
+            self.hitbox.y = 720 - self.hitbox.height
+            var["coordinates"][1] -= 1
             var["room"].change_room(var["coordinates"], var)
 
 
-    def draw(self, screen):
-        #pygame.draw.rect(screen, couleur_jeu["red"], self.hitbox)
+    def draw(self, screen, var):
+        if var["collisions_show"]:
+            pygame.draw.rect(screen, couleur_jeu["red"], self.hitbox)
         screen.blit(self.get_specific_sprite(), self.direction)
 
 
@@ -413,10 +424,14 @@ class Room:
             self.data = None
         except FileNotFoundError:
             self.data = None
-        if var["current_music"] != self.data["music"]:
-            var["current_music"] = self.data["music"]
+        try:
+            if var["current_music"] != self.data["music"]:
+                var["current_music"] = self.data["music"]
+                stop_music()
+                play_music(f"{var['current_music']}.ogg")
+        except TypeError:
             stop_music()
-            play_music(f"{var['current_music']}.ogg")
+            play_music(f"presenting_vvvvvv.ogg")
         return var
 
 
@@ -424,16 +439,19 @@ class Room:
         rects = []
         position_x = 0
         position_y = 0
-        for y_values in self.data["map_data"]:
-            for values in y_values:
-                try:
-                    if values["platform"] is not None:
-                        rects.append(pygame.Rect(position_x, position_y, 30, 30))
-                except KeyError:
-                    pass
-                position_x += 30
-            position_y += 30
-            position_x = 0
+        try:
+            for y_values in self.data["map_data"]:
+                for values in y_values:
+                    try:
+                        if values["platform"] is not None:
+                            rects.append(pygame.Rect(position_x, position_y, 30, 30))
+                    except KeyError:
+                        pass
+                    position_x += 30
+                position_y += 30
+                position_x = 0
+        except TypeError:
+            pass
         return rects
 
     def update_data(self, x, y, type, data=None, order=None):
@@ -464,33 +482,53 @@ class Room:
 
     def draw(self, screen):
         surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-        for y_values in self.data["map_data"]:
-            for values in y_values:
-                try:
-                    color  = values["color"]
-                except KeyError:
-                    pass
+        try:
+            for y_values in self.data["map_data"]:
+                for values in y_values:
+                    try:
+                        color  = values["color"]
+                    except KeyError:
+                        pass
 
+                    try:
+                        if values["platform"] is not None:
+                            self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "platform", values["platform"])
+                    except KeyError:
+                        pass
+                    try:
+                        if values["background"] is not None:
+                            self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "background", values["background"])
+                    except KeyError:
+                        pass
+                    try:
+                        if values["object"] is not None:
+                            self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "object", values["object"])
+                    except KeyError:
+                        pass
+                    self.x_position += 1
+                self.y_position += 1
+                self.x_position = 0
+            screen.blit(surface, (0, 0))
+            self.reset_position()
+        except TypeError:
+            pass
+
+    def draw_roomname(self, screen, var, customtext=None):
+        rect = pygame.Rect(0, 720, screen.get_width(), screen.get_height() - 720)
+        pygame.draw.rect(screen, couleur_jeu["black"], rect)
+        try:
+            if customtext is None:
                 try:
-                    if values["platform"] is not None:
-                        self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "platform", values["platform"])
+                    text = var["fonts"]["little_generalfont"].render(self.data["roomname"], True, couleur_jeu["cyan"])
+                    screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
                 except KeyError:
                     pass
-                try:
-                    if values["background"] is not None:
-                        self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "background", values["background"])
-                except KeyError:
-                    pass
-                try:
-                    if values["object"] is not None:
-                        self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "object", values["object"])
-                except KeyError:
-                    pass
-                self.x_position += 1
-            self.y_position += 1
-            self.x_position = 0
-        screen.blit(surface, (0, 0))
-        self.reset_position()
+            else:
+                text = var["fonts"]["little_generalfont"].render(customtext, True, couleur_jeu["red"])
+                screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
+        except TypeError:
+            text = var["fonts"]["little_generalfont"].render("This room is empty.", True, couleur_jeu["red"])
+            screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
 
 
 class Editor:
