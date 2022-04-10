@@ -1,6 +1,8 @@
 import json
 import pygame, random, math
 
+from ressources.functions import play_sound
+
 try:
     from functions import crop, convert_PIL_to_pygame, apply_color, get_screen_size, play_music, stop_music
     from colors import couleur_jeu, couleur_joueurs
@@ -149,6 +151,7 @@ class Player:
         for platform in self.platforms:
             if self.hitbox.colliderect(platform.x, platform.y - 12, platform.width, platform.height):
                 if self.gravity == "bottom":
+                    play_sound("jump.wav")
                     self.gravity_enabled = True
                     self.directions["up"] = True
                     self.directions["down"] = False
@@ -158,6 +161,7 @@ class Player:
                     break
             elif self.hitbox.colliderect(platform.x, platform.y + 12, platform.width, platform.height):
                 if self.gravity == "top":
+                    play_sound("jump2.wav")
                     self.gravity_enabled = True
                     self.gravity = "bottom"
                     self.directions["up"] = False
@@ -225,12 +229,12 @@ class Player:
         elif self.hitbox.bottom > 720 + self.hitbox.height - 10:
             self.direction.y = -self.hitbox.height
             self.hitbox.y = -self.hitbox.height
-            var["coordinates"][1] += 1
+            var["coordinates"][1] -= 1
             var["room"].change_room(var["coordinates"], var)
         elif self.hitbox.top < -self.hitbox.height + 10:
             self.direction.y = 720 - self.hitbox.height
             self.hitbox.y = 720 - self.hitbox.height
-            var["coordinates"][1] -= 1
+            var["coordinates"][1] += 1
             var["room"].change_room(var["coordinates"], var)
 
 
@@ -427,11 +431,11 @@ class Room:
         try:
             if var["current_music"] != self.data["music"]:
                 var["current_music"] = self.data["music"]
-                stop_music()
                 play_music(f"{var['current_music']}.ogg")
         except TypeError:
-            stop_music()
-            play_music(f"presenting_vvvvvv.ogg")
+            if var["current_music"] != "presenting_vvvvvv":
+                var["current_music"] = "presenting_vvvvvv"
+                play_music(f"presenting_vvvvvv.ogg")
         return var
 
 
@@ -529,6 +533,19 @@ class Room:
         except TypeError:
             text = var["fonts"]["little_generalfont"].render("This room is empty.", True, couleur_jeu["red"])
             screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
+
+    def play_music(self, var):
+        try:
+            if self.data["music"] is not None:
+                if var["current_music"] != self.data["music"]:
+                    var["current_music"] = self.data["music"]
+                    stop_music()
+                    play_music(f"{var['current_music']}.ogg")
+        except TypeError:
+            if var["current_music"] != "presenting_vvvvvv":
+                var["current_music"] = "presenting_vvvvvv"
+                stop_music()
+                play_music(f"presenting_vvvvvv.ogg")
 
 
 class Editor:

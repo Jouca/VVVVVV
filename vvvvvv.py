@@ -8,6 +8,7 @@ from ressources.menus import affichage_menu, controles
 
 pygame.mixer.pre_init(frequency=44100, size=-16, channels=1, buffer=512)
 pygame.mixer.init()
+pygame.mixer.music.set_volume(0.4)
 clock = pygame.time.Clock()
 
 

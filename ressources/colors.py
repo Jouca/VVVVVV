@@ -16,8 +16,11 @@ couleur_jeu = {
     "neon_green": (0, 206, 39),
     "neon_less_green": (51, 156, 0),
     "neon_yellow": (194, 206, 0),
+    "neon_less_yellow": (156, 156, 0),
     "neon_blue": (27, 67, 255),
     "neon_less_blue": (0, 14, 156),
+    "neon_cyan": (0, 165, 206),
+    "neon_less_cyan": (0, 102, 102),
     "neon_red": (206, 5, 0),
     "black": (0, 0, 0),
 }

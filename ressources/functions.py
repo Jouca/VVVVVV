@@ -44,8 +44,8 @@ def play_music(path):
     Joue une musique en boucle.
     """
     pygame.mixer.music.load(f"./ressources/musics/{path}")
-    pygame.mixer.music.play(-1)
     pygame.mixer.music.set_volume(0.1)
+    pygame.mixer.music.play(-1)
 
 
 def check_already_started():

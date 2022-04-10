@@ -151,7 +151,7 @@ def controles_principal(var, event):
                     var["menuSelect"] = "play"
                 else:
                     var["menuSelect"] = "jeu"
-                    stop_music()
+                    var["room"].play_music(var)
             if var["menus"]["principal"].menuselection[0] == "en ligne":
                 var["menuSelect"] = "online mode"
             if var["menus"]["principal"].menuselection[0] == "debug":
@@ -191,6 +191,7 @@ def controles_jeu(var, event):
         if event.key == pygame.K_ESCAPE:
             play_sound("menu.wav")
             var["menuSelect"] = "principal"
+            var["current_music"] = "menu.ogg"
             play_music("menu.ogg")
         elif event.key == pygame.K_SPACE:
             var["players"]["viridian"].change_gravity()
@@ -200,6 +201,9 @@ def controles_jeu(var, event):
                     var["collisions_show"] = False
                 else:
                     var["collisions_show"] = True
+    if pygame.mixer.music.get_endevent() == 0:
+        pygame.mixer.music.set_endevent(1)
+        pygame.mixer.music.play(-1)
     return var
 
 
