@@ -31,4 +31,5 @@ couleur_joueurs = {
     "vermilion": (240, 16, 16),
     "vitellary": (240, 240, 16),
     "verdigris": (16, 240, 16),
+    "dead": (255, 0, 0)
 }

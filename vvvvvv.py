@@ -58,6 +58,8 @@ def main():
         "left": False,
         "right": False,
         "collisions_show": False,
+        "dead": False,
+        "dead_animation": 0,
     }
 
     frame_per_second = 60

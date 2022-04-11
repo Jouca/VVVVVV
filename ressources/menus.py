@@ -1,5 +1,4 @@
 import pygame
-from pyrsistent import v
 
 try:
     from constant import couleur, stars, screen_size
@@ -23,7 +22,7 @@ def affichage_editeur(screen, var):
     Affiche l'éditeur.
     """
     screen.fill(couleur["black"])
-    var["editor"].draw(screen)
+    var["editor"].draw(screen, var)
     coordinates_show = var["fonts"]["verylittle_generalfont"].render(str(var["coordinates"]), True, couleur["white"])
     var["editor"].show_cursor(screen)
     var["selectobjectmenu"].draw(screen, var)
@@ -36,7 +35,7 @@ def affichage_selectobject(screen, var):
     Affiche le menu de sélection des objets.
     """
     screen.fill(couleur["black"])
-    var["editor"].draw(screen)
+    var["editor"].draw(screen, var)
     coordinates_show = var["fonts"]["verylittle_generalfont"].render(str(var["coordinates"]), True, couleur["white"])
     screen.blit(coordinates_show, (screen.get_width() - 155, 10))
     var["selectobjectmenu"].draw(screen, var)
@@ -76,14 +75,17 @@ def affichage_menu_histoire(screen, var):
 def affichage_jeu(screen, var):
     screen.fill(couleur["black"])
     stars.draw(screen)
-    var["room"].draw(screen)
+    var = var["room"].draw(screen, var)
     var["players"]["viridian"].update_platforms(var["room"].get_rects())
     var["players"]["viridian"].draw(screen, var)
     var["players"]["viridian"].update(var)
     var["room"].draw_roomname(screen, var)
     if var["collisions_show"]:
         for i in var["room"].get_rects():
-            pygame.draw.rect(screen, couleur["blue"], i, 1)
+            if i[1] == "platform":
+                pygame.draw.rect(screen, couleur["blue"], i[0], 1)
+            elif i[1] == "enemy":
+                pygame.draw.rect(screen, couleur["red"], i[0], 1)
     return var
 
 
@@ -151,7 +153,10 @@ def controles_principal(var, event):
                     var["menuSelect"] = "play"
                 else:
                     var["menuSelect"] = "jeu"
+                    var["coordinates"] = [4, 9]
                     var["room"].play_music(var)
+                    var["room"].change_room(var["coordinates"], var)
+                    var["players"]["viridian"].update_positions([433, 568])
             if var["menus"]["principal"].menuselection[0] == "en ligne":
                 var["menuSelect"] = "online mode"
             if var["menus"]["principal"].menuselection[0] == "debug":
@@ -194,7 +199,8 @@ def controles_jeu(var, event):
             var["current_music"] = "menu.ogg"
             play_music("menu.ogg")
         elif event.key == pygame.K_SPACE:
-            var["players"]["viridian"].change_gravity()
+            if var["dead"] is False:
+                var["players"]["viridian"].change_gravity()
         if var["debug"]:
             if event.key == pygame.K_c:
                 if var["collisions_show"]:

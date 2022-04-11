@@ -61,7 +61,8 @@ class Player:
     def __init__(self, player):
         self.player_name = player
         self.gravity = "bottom"
-        self.direction = pygame.math.Vector2(433, 568)
+        self.positions = [433, 568]
+        self.direction = pygame.math.Vector2(self.positions)
         self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 62)
         self.speed = 12
         self.directions = {"left": False, "right": True,  "up": False, "down": True}
@@ -98,6 +99,12 @@ class Player:
                 player_sprite_moving[index]
             ])
 
+
+    def update_positions(self, positions):
+        self.positions = positions
+        self.direction = pygame.math.Vector2(self.positions)
+        self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 62)
+
     def walk_animation(self, var):
         if var["left"]:
             self.walk_animation_counter += 2
@@ -118,6 +125,25 @@ class Player:
         else:
             self.walk_animation_counter = 0
             self.walk_animation_type = "normal"
+
+    def die(self, var):
+        self.emotion = "sad"
+        self.walk_animation_type = "normal"
+        var["dead_animation"] += 1
+        if var["dead_animation"] == 1:
+            self.player_name = "dead"
+            play_sound("hurt.wav")
+        if var["dead_animation"] == 70:
+            var["dead"] = False
+            var["dead_animation"] = 0
+            self.player_name = "viridian"
+            self.emotion = "happy"
+            self.directions["down"] = True
+            self.directions["up"] = False
+            self.gravity = "bottom"
+            self.update_positions([433, 568])
+            var["coordinates"] = [4, 9]
+            var["room"].change_room(var["coordinates"], var)
 
     def get_index(self):
         if self.emotion == "happy":
@@ -149,7 +175,7 @@ class Player:
 
     def change_gravity(self):
         for platform in self.platforms:
-            if self.hitbox.colliderect(platform.x, platform.y - 12, platform.width, platform.height):
+            if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] == "platform":
                 if self.gravity == "bottom":
                     play_sound("jump.wav")
                     self.gravity_enabled = True
@@ -159,7 +185,7 @@ class Player:
                     self.direction.y -= self.speed
                     self.hitbox.y -= self.speed
                     break
-            elif self.hitbox.colliderect(platform.x, platform.y + 12, platform.width, platform.height):
+            elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] == "platform":
                 if self.gravity == "top":
                     play_sound("jump2.wav")
                     self.gravity_enabled = True
@@ -191,51 +217,56 @@ class Player:
             self.directions["right"] = True
 
     def update(self, var):
-        self.walk_animation(var)
-        if var["left"]:
-            self.move("left")
-        if var["right"]:
-            self.move("right")
         for platform in self.platforms:
-            if self.hitbox.colliderect(platform):
-                if var["right"]:
-                    self.hitbox.right = platform.left
-                    self.direction.x = self.hitbox.x
-                    break
-                elif var["left"]:
-                    self.hitbox.left = platform.right
-                    self.direction.x = self.hitbox.x
-                    break
-        for platform in self.platforms:
-            if self.hitbox.colliderect(platform.x, platform.y - 12, platform.width, platform.height):
-                if self.gravity == "bottom":
-                    self.hitbox.bottom = platform.top - 12
-                    self.direction.y = self.hitbox.y
-            elif self.hitbox.colliderect(platform.x, platform.y + 12, platform.width, platform.height):
-                if self.gravity == "top":
-                    self.hitbox.top = platform.bottom + 12
-                    self.direction.y = self.hitbox.y
-        self.apply_gravity()
-        if self.hitbox.topleft[0] < -self.hitbox.width + 10:
-            self.direction.x = get_screen_size()[0] - self.hitbox.width
-            self.hitbox.x = get_screen_size()[0] - self.hitbox.width
-            var["coordinates"][0] -= 1
-            var["room"].change_room(var["coordinates"], var)
-        elif self.hitbox.topright[0] > get_screen_size()[0] + self.hitbox.width - 10:
-            self.direction.x = 1
-            self.hitbox.x = 1
-            var["coordinates"][0] += 1
-            var["room"].change_room(var["coordinates"], var)
-        elif self.hitbox.bottom > 720 + self.hitbox.height - 10:
-            self.direction.y = -self.hitbox.height
-            self.hitbox.y = -self.hitbox.height
-            var["coordinates"][1] -= 1
-            var["room"].change_room(var["coordinates"], var)
-        elif self.hitbox.top < -self.hitbox.height + 10:
-            self.direction.y = 720 - self.hitbox.height
-            self.hitbox.y = 720 - self.hitbox.height
-            var["coordinates"][1] += 1
-            var["room"].change_room(var["coordinates"], var)
+            if self.hitbox.colliderect(platform[0]) and platform[1] == "enemy":
+                var["dead"] = True
+                self.die(var)
+        if var["dead"] is False:
+            self.walk_animation(var)
+            if var["left"]:
+                self.move("left")
+            if var["right"]:
+                self.move("right")
+            for platform in self.platforms:
+                if self.hitbox.colliderect(platform[0]) and platform[1] == "platform":
+                    if var["right"]:
+                        self.hitbox.right = platform[0].left
+                        self.direction.x = self.hitbox.x
+                        break
+                    elif var["left"]:
+                        self.hitbox.left = platform[0].right
+                        self.direction.x = self.hitbox.x
+                        break
+            for platform in self.platforms:
+                if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] == "platform":
+                    if self.gravity == "bottom":
+                        self.hitbox.bottom = platform[0].top - 12
+                        self.direction.y = self.hitbox.y
+                elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] == "platform":
+                    if self.gravity == "top":
+                        self.hitbox.top = platform[0].bottom + 12
+                        self.direction.y = self.hitbox.y
+            self.apply_gravity()
+            if self.hitbox.topleft[0] < -self.hitbox.width + 10:
+                self.direction.x = get_screen_size()[0] - self.hitbox.width
+                self.hitbox.x = get_screen_size()[0] - self.hitbox.width
+                var["coordinates"][0] -= 1
+                var["room"].change_room(var["coordinates"], var)
+            elif self.hitbox.topright[0] > get_screen_size()[0] + self.hitbox.width - 10:
+                self.direction.x = 1
+                self.hitbox.x = 1
+                var["coordinates"][0] += 1
+                var["room"].change_room(var["coordinates"], var)
+            elif self.hitbox.bottom > 720 + self.hitbox.height - 10:
+                self.direction.y = -self.hitbox.height
+                self.hitbox.y = -self.hitbox.height
+                var["coordinates"][1] -= 1
+                var["room"].change_room(var["coordinates"], var)
+            elif self.hitbox.top < -self.hitbox.height + 10:
+                self.direction.y = 720 - self.hitbox.height
+                self.hitbox.y = 720 - self.hitbox.height
+                var["coordinates"][1] += 1
+                var["room"].change_room(var["coordinates"], var)
 
 
     def draw(self, screen, var):
@@ -410,6 +441,7 @@ class Room:
         self.y_position = 0
         self.map_name = map_name
         self.object = Object()
+        self.surface = None
         try:
             with open(f"./ressources/maps/{map_name}/{coordinates}.vvvvvv", "r") as f:
                 self.data = json.load(f)
@@ -436,6 +468,7 @@ class Room:
             if var["current_music"] != "presenting_vvvvvv":
                 var["current_music"] = "presenting_vvvvvv"
                 play_music(f"presenting_vvvvvv.ogg")
+        self.surface = None
         return var
 
 
@@ -448,7 +481,35 @@ class Room:
                 for values in y_values:
                     try:
                         if values["platform"] is not None:
-                            rects.append(pygame.Rect(position_x, position_y, 30, 30))
+                            rects.append((pygame.Rect(position_x, position_y, 30, 30), "platform"))
+                    except KeyError:
+                        pass
+                    try:
+                        if values["object"] is not None:
+                            if values["object"] == 0 or values["object"] == 4:
+                                # Spike bottom
+                                rects.append((pygame.Rect(position_x + 11, position_y, 4, 8), "enemy"))
+                                rects.append((pygame.Rect(position_x + 7, position_y + 7, 13, 8), "enemy"))
+                                rects.append((pygame.Rect(position_x + 4, position_y + 15, 20, 8), "enemy"))
+                                rects.append((pygame.Rect(position_x, position_y + 22, 28, 8), "enemy"))
+                            elif values["object"] == 1 or values["object"] == 5:
+                                # Spike top
+                                rects.append((pygame.Rect(position_x, position_y, 28, 8), "enemy"))
+                                rects.append((pygame.Rect(position_x + 4, position_y + 8, 20, 8), "enemy"))
+                                rects.append((pygame.Rect(position_x + 7, position_y + 15, 13, 8), "enemy"))
+                                rects.append((pygame.Rect(position_x + 11, position_y + 22, 4, 8), "enemy"))
+                            elif values["object"] == 2 or values["object"] == 6:
+                                # Spike right
+                                rects.append((pygame.Rect(position_x + 22, position_y + 3, 8, 27), "enemy"))
+                                rects.append((pygame.Rect(position_x + 15, position_y + 6, 8, 20), "enemy"))
+                                rects.append((pygame.Rect(position_x + 7, position_y + 10, 8, 13), "enemy"))
+                                rects.append((pygame.Rect(position_x, position_y + 15, 8, 4), "enemy"))
+                            elif values["object"] == 3 or values["object"] == 7:
+                                # Spike left
+                                rects.append((pygame.Rect(position_x, position_y + 3, 8, 27), "enemy"))
+                                rects.append((pygame.Rect(position_x + 7, position_y + 6, 8, 20), "enemy"))
+                                rects.append((pygame.Rect(position_x + 15, position_y + 10, 8, 13), "enemy"))
+                                rects.append((pygame.Rect(position_x + 22, position_y + 15, 8, 4), "enemy"))
                     except KeyError:
                         pass
                     position_x += 30
@@ -472,6 +533,7 @@ class Room:
                 pass
         else:
             self.data["map_data"][x][y] = {}
+        self.surface = None
 
 
     def save_data(self, coordinates):
@@ -479,43 +541,47 @@ class Room:
             json.dump(self.data, f)
         f.close()
 
-
     def reset_position(self):
         self.x_position = 0
         self.y_position = 0
 
-    def draw(self, screen):
+    def draw(self, screen, var):
         surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-        try:
-            for y_values in self.data["map_data"]:
-                for values in y_values:
-                    try:
-                        color  = values["color"]
-                    except KeyError:
-                        pass
+        if self.surface is None:
+            try:
+                for y_values in self.data["map_data"]:
+                    for values in y_values:
+                        try:
+                            color  = values["color"]
+                        except KeyError:
+                            pass
 
-                    try:
-                        if values["platform"] is not None:
-                            self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "platform", values["platform"])
-                    except KeyError:
-                        pass
-                    try:
-                        if values["background"] is not None:
-                            self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "background", values["background"])
-                    except KeyError:
-                        pass
-                    try:
-                        if values["object"] is not None:
-                            self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "object", values["object"])
-                    except KeyError:
-                        pass
-                    self.x_position += 1
-                self.y_position += 1
-                self.x_position = 0
-            screen.blit(surface, (0, 0))
-            self.reset_position()
-        except TypeError:
-            pass
+                        try:
+                            if values["platform"] is not None:
+                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "platform", values["platform"])
+                        except KeyError:
+                            pass
+                        try:
+                            if values["background"] is not None:
+                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "background", values["background"])
+                        except KeyError:
+                            pass
+                        try:
+                            if values["object"] is not None:
+                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "object", values["object"])
+                        except KeyError:
+                            pass
+                        self.x_position += 1
+                    self.y_position += 1
+                    self.x_position = 0
+                screen.blit(surface, (0, 0))
+                self.reset_position()
+                self.surface = surface
+            except TypeError:
+                pass
+        else:
+            screen.blit(self.surface, (0, 0))
+        return var
 
     def draw_roomname(self, screen, var, customtext=None):
         rect = pygame.Rect(0, 720, screen.get_width(), screen.get_height() - 720)
@@ -565,8 +631,8 @@ class Editor:
         self.map.change_room(coordinates, var)
         return var
 
-    def draw(self, screen):
-        self.map.draw(screen)
+    def draw(self, screen, var):
+        self.map.draw(screen, var)
  
     def cursor_position(self, mouse_position):
         for i in range((self.screen_size[0] // self.box_size) + 1):
