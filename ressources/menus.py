@@ -76,6 +76,7 @@ def affichage_jeu(screen, var):
     screen.fill(couleur["black"])
     stars.draw(screen)
     var = var["room"].draw(screen, var)
+    var["room"].conveyors_animations(screen, var)
     var["players"]["viridian"].update_platforms(var["room"].get_rects())
     var["players"]["viridian"].draw(screen, var)
     var["players"]["viridian"].update(var)
@@ -86,6 +87,8 @@ def affichage_jeu(screen, var):
                 pygame.draw.rect(screen, couleur["blue"], i[0], 1)
             elif i[1] == "enemy":
                 pygame.draw.rect(screen, couleur["red"], i[0], 1)
+            elif i[1] == "conveyor_left" or i[1] == "conveyor_right":
+                pygame.draw.rect(screen, couleur["yellow"], i[0], 1)
     return var
 
 
@@ -234,13 +237,14 @@ def controles_debug(var, event):
             play_sound("menu.wav")
             if var["menus"]["debug"].menuselection[0] == "éditeur histoire":
                 var["currentMap"] = "history"
-                var["coordinates"] = [0, 0]
+                var["coordinates"] = [4, 9]
                 var["menuSelect"] = "editeur"
                 data = map_editor_process(var["currentMap"], var["coordinates"])
                 if data is None:
                     create_map(var["currentMap"])
                     data = map_editor_process(var["currentMap"], var["coordinates"])
                 var["editor"].update_mapdata(var["currentMap"], var["coordinates"])
+                var["editor"].change_room(var["coordinates"], var)
     return var
 
 
@@ -251,6 +255,8 @@ def controles_editeur(var, event):
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_ESCAPE:
             var["menuSelect"] = "principal"
+            var["current_music"] = "menu"
+            play_music("menu.ogg")
         elif event.key == pygame.K_TAB:
             var["menuSelect"] = "selectobject"
             var["selectobjectmenu"].change_anim_mode()

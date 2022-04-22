@@ -68,6 +68,15 @@ class Player:
         self.directions = {"left": False, "right": True,  "up": False, "down": True}
         self.player_sprites_dict = []
         self.platforms = []
+        self.authorized_platforms = [
+            "platform",
+            "conveyor_left",
+            "conveyor_right",
+        ]
+        self.conveyors = [
+            "conveyor_left",
+            "conveyor_right",
+        ]
         self.emotion = "happy"
         self.walk_animation_counter = 0
         self.walk_animation_type = "normal"
@@ -133,7 +142,7 @@ class Player:
         if var["dead_animation"] == 1:
             self.player_name = "dead"
             play_sound("hurt.wav")
-        if var["dead_animation"] == 70:
+        if var["dead_animation"] == 60:
             var["dead"] = False
             var["dead_animation"] = 0
             self.player_name = "viridian"
@@ -175,7 +184,7 @@ class Player:
 
     def change_gravity(self):
         for platform in self.platforms:
-            if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] == "platform":
+            if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] in self.authorized_platforms:
                 if self.gravity == "bottom":
                     play_sound("jump.wav")
                     self.gravity_enabled = True
@@ -185,7 +194,7 @@ class Player:
                     self.direction.y -= self.speed
                     self.hitbox.y -= self.speed
                     break
-            elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] == "platform":
+            elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] in self.authorized_platforms:
                 if self.gravity == "top":
                     play_sound("jump2.wav")
                     self.gravity_enabled = True
@@ -216,19 +225,52 @@ class Player:
             self.directions["left"] = False
             self.directions["right"] = True
 
+    def move_conveyor(self, direction):
+        if direction == "left":
+            self.direction.x -= (self.speed - 7)
+            self.hitbox.x -= (self.speed - 7)
+        if direction == "right":
+            self.direction.x += (self.speed - 7)
+            self.hitbox.x += (self.speed - 7)
+
     def update(self, var):
-        for platform in self.platforms:
-            if self.hitbox.colliderect(platform[0]) and platform[1] == "enemy":
-                var["dead"] = True
-                self.die(var)
+        if var["dead"]:
+            self.die(var)
+            return
         if var["dead"] is False:
+            for platform in self.platforms:
+                if self.hitbox.colliderect(platform[0]) and platform[1] == "enemy":
+                    var["dead"] = True
+                    self.die(var)
+                    return
             self.walk_animation(var)
             if var["left"]:
                 self.move("left")
             if var["right"]:
                 self.move("right")
             for platform in self.platforms:
-                if self.hitbox.colliderect(platform[0]) and platform[1] == "platform":
+                if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] in self.conveyors:
+                    if self.gravity == "bottom":
+                        self.hitbox.bottom = platform[0].top - 12
+                        self.direction.y = self.hitbox.y
+                        if platform[1] == "conveyor_left":
+                            self.move_conveyor("left")
+                            var["left"] = True
+                        if platform[1] == "conveyor_right":
+                            self.move_conveyor("right")
+                            var["right"] = True
+                elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] in self.conveyors:
+                    if self.gravity == "top":
+                        self.hitbox.top = platform[0].bottom + 12
+                        self.direction.y = self.hitbox.y
+                        if platform[1] == "conveyor_left":
+                            self.move_conveyor("left")
+                            var["left"] = True
+                        if platform[1] == "conveyor_right":
+                            self.move_conveyor("right")
+                            var["right"] = True
+            for platform in self.platforms:
+                if self.hitbox.colliderect(platform[0]) and platform[1] in self.authorized_platforms:
                     if var["right"]:
                         self.hitbox.right = platform[0].left
                         self.direction.x = self.hitbox.x
@@ -238,11 +280,11 @@ class Player:
                         self.direction.x = self.hitbox.x
                         break
             for platform in self.platforms:
-                if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] == "platform":
+                if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] in self.authorized_platforms:
                     if self.gravity == "bottom":
                         self.hitbox.bottom = platform[0].top - 12
                         self.direction.y = self.hitbox.y
-                elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] == "platform":
+                elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] in self.authorized_platforms:
                     if self.gravity == "top":
                         self.hitbox.top = platform[0].bottom + 12
                         self.direction.y = self.hitbox.y
@@ -282,6 +324,7 @@ class Object:
         self.tiles1 = crop("./ressources/sprites/tiles_backup.png", 32, 32, (30, 30))
         self.background = crop("./ressources/sprites/backgrounds.png", 32, 32, (30, 30))
         self.spikes = crop("./ressources/sprites/spikes.png", 32, 32, (30, 30))
+        self.conveyors = crop("./ressources/sprites/conveyors.png", 32, 32, (30, 30))
         for i in self.tiles1:
             self.alltiles.append(i)
         for i in self.background:
@@ -289,6 +332,10 @@ class Object:
         for i in self.spikes:
             self.alltiles.append(i)
             self.objects.append(i)
+        for i in self.conveyors:
+            self.alltiles.append(i)
+        self.objects.append(self.conveyors[0])
+        self.objects.append(self.conveyors[4])
 
     def draw_specific_grayscale_tile(self, surface, position, color, type, tile):
         object = convert_PIL_to_pygame(colored_textures[color][type][tile])
@@ -302,6 +349,9 @@ class Object:
 
     def get_all_spikes(self):
         return self.spikes
+
+    def get_all_conveyors(self):
+        return self.conveyors
 
     def get_all_platforms(self):
         return self.tiles1
@@ -319,17 +369,21 @@ class ColoredTextures:
         platforms = object.get_all_platforms()
         backgrounds = object.get_all_backgrounds()
         objects = object.get_all_objects()
+        conveyors = object.get_all_conveyors()
         for couleur in couleur_jeu:
             self.texture_colored[couleur] = {}
             self.texture_colored[couleur]["platform"] = {}
             self.texture_colored[couleur]["background"] = {}
             self.texture_colored[couleur]["object"] = {}
+            self.texture_colored[couleur]["conveyor"] = {}
             for count in range(len(platforms)):
                 self.texture_colored[couleur]["platform"][count] = apply_color(platforms[count], couleur_jeu[couleur])
             for count in range(len(backgrounds)):
                 self.texture_colored[couleur]["background"][count] = apply_color(backgrounds[count], couleur_jeu[couleur])
             for count in range(len(objects)):
                 self.texture_colored[couleur]["object"][count] = apply_color(objects[count], couleur_jeu[couleur])
+            for count in range(len(conveyors)):
+                self.texture_colored[couleur]["conveyor"][count] = apply_color(conveyors[count], couleur_jeu[couleur])
 
     def get_colored_textures(self):
         return self.texture_colored
@@ -442,6 +496,8 @@ class Room:
         self.map_name = map_name
         self.object = Object()
         self.surface = None
+        self.conveyors_animation = 0
+        self.conveyors_timeanimation = 0
         try:
             with open(f"./ressources/maps/{map_name}/{coordinates}.vvvvvv", "r") as f:
                 self.data = json.load(f)
@@ -510,6 +566,12 @@ class Room:
                                 rects.append((pygame.Rect(position_x + 7, position_y + 6, 8, 20), "enemy"))
                                 rects.append((pygame.Rect(position_x + 15, position_y + 10, 8, 13), "enemy"))
                                 rects.append((pygame.Rect(position_x + 22, position_y + 15, 8, 4), "enemy"))
+                            elif values["object"] == 8:
+                                # Conveyor left
+                                rects.append((pygame.Rect(position_x, position_y, 30, 30), "conveyor_left"))
+                            elif values["object"] == 9:
+                                # Conveyor right
+                                rects.append((pygame.Rect(position_x, position_y, 30, 30), "conveyor_right"))
                     except KeyError:
                         pass
                     position_x += 30
@@ -544,6 +606,45 @@ class Room:
     def reset_position(self):
         self.x_position = 0
         self.y_position = 0
+
+    def conveyors_animations(self, screen, var):
+        self.conveyors_timeanimation += 1
+        if self.conveyors_timeanimation >= 10:
+            self.conveyors_timeanimation = 0
+            self.conveyors_animation += 1
+            if self.conveyors_animation == 4:
+                self.conveyors_animation = 0
+            var = self.draw_animations(screen, var)
+
+    def draw_animations(self, screen, var):
+        surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        try:
+            surface.blit(self.surface, (0, 0))
+            for y_values in self.data["map_data"]:
+                for values in y_values:
+                    try:
+                        color  = values["color"]
+                    except KeyError:
+                        pass
+
+                    try:
+                        if values["object"] is not None:
+                            if values["object"] == 8:
+                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "conveyor", self.conveyors_animation)
+                            if values["object"] == 9:
+                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "conveyor", 4 + self.conveyors_animation)
+                    except KeyError:
+                        pass
+                    self.x_position += 1
+                self.y_position += 1
+                self.x_position = 0
+            screen.blit(surface, (0, 0))
+            self.reset_position()
+            self.surface = surface
+            screen.blit(self.surface, (0, 0))
+        except TypeError:
+            pass
+        return var
 
     def draw(self, screen, var):
         surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)

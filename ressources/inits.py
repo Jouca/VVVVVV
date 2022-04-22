@@ -22,9 +22,9 @@ def init_screen():
     pygame.init()
     pygame.mixer.pre_init(44100, -16, 2, 1024)
     pygame.mixer.music.set_volume(0.7)
-    screen = pygame.display.set_mode(screen_size)
     pygame.display.set_caption("VVVVVV")
     pygame.display.set_icon(charger_ressource("/sprites/icon.png"))
+    screen = pygame.display.set_mode(screen_size)
     return screen
 
 
