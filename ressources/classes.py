@@ -63,7 +63,7 @@ class Player:
         self.gravity = "bottom"
         self.positions = [433, 568]
         self.direction = pygame.math.Vector2(self.positions)
-        self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 62)
+        self.hitbox = pygame.Rect(self.direction.x, self.direction.y, 30, 56)
         self.speed = 12
         self.directions = {"left": False, "right": True,  "up": False, "down": True}
         self.player_sprites_dict = []
@@ -100,6 +100,10 @@ class Player:
             "sad_up_left": 6,
             "sad_up_right": 7,
         }
+        self.lock_laser_v = (False, 0)
+        self.lock_laser_h = (False, 0)
+        self.checkpoint_position = ((False, False), "up")
+        self.checkpoint_coordinates = [0, 0]
         player_sprites = crop("./ressources/sprites/player.png", 63, 30)
         player_sprite_moving = crop("./ressources/sprites/player_moving.png", 63, 36, (38, 65))
         for index in range(len(player_sprites)):
@@ -150,8 +154,8 @@ class Player:
             self.directions["down"] = True
             self.directions["up"] = False
             self.gravity = "bottom"
-            self.update_positions([433, 568])
-            var["coordinates"] = [4, 9]
+            self.update_positions([var["checkpoint_position"][0][0] + 15, var["checkpoint_position"][0][1]])
+            var["coordinates"] = var["checkpoint_coordinates"].copy()
             var["room"].change_room(var["coordinates"], var)
 
     def get_index(self):
@@ -181,6 +185,15 @@ class Player:
 
     def update_platforms(self, platforms):
         self.platforms = platforms
+
+    def modify_checkpoint(self, coordinates, direction, room_coords, var):
+        if coordinates != var["checkpoint_position"][0]:
+            self.checkpoint_position = (coordinates, direction)
+            self.checkpoint_coordinates = room_coords
+            var["checkpoint_position"] = self.checkpoint_position
+            var["checkpoint_coordinates"] = self.checkpoint_coordinates.copy()
+            play_sound("save.wav")
+        return var
 
     def change_gravity(self):
         for platform in self.platforms:
@@ -249,6 +262,41 @@ class Player:
             if var["right"]:
                 self.move("right")
             for platform in self.platforms:
+                if self.hitbox.colliderect(platform[0]) and platform[1] == "laser_v":
+                    if self.lock_laser_v[0] is False:
+                        if self.gravity == "bottom":
+                            self.directions["up"] = True
+                            self.directions["down"] = False
+                            self.gravity = "top"
+                            self.lock_laser_v = (True, self.hitbox.x)
+                            play_sound("blip.wav")
+                        elif self.gravity == "top":
+                            self.directions["up"] = False
+                            self.directions["down"] = True
+                            self.gravity = "bottom"
+                            self.lock_laser_v = (True, self.hitbox.x)
+                            play_sound("blip.wav")
+                elif self.hitbox.colliderect(platform[0].x, platform[0].y, platform[0].width, platform[0].height) and platform[1] == "laser_h":
+                    if self.lock_laser_h[0] is False:
+                        if self.gravity == "bottom":
+                            self.directions["up"] = True
+                            self.directions["down"] = False
+                            self.gravity = "top"
+                            self.lock_laser_h = (True, self.hitbox.y)
+                            play_sound("blip.wav")
+                        elif self.gravity == "top":
+                            self.directions["up"] = False
+                            self.directions["down"] = True
+                            self.gravity = "bottom"
+                            self.lock_laser_h = (True, self.hitbox.y)
+                            play_sound("blip.wav")
+                if self.lock_laser_h[0]:
+                    if abs(self.hitbox.y - abs(self.lock_laser_h[1])) > 30:
+                        self.lock_laser_h = (False, 0)
+                if self.lock_laser_v[0]:
+                    if abs(self.hitbox.x - abs(self.lock_laser_v[1])) > 32:
+                        self.lock_laser_v = (False, 0)
+            for platform in self.platforms:
                 if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] in self.conveyors:
                     if self.gravity == "bottom":
                         self.hitbox.bottom = platform[0].top - 12
@@ -288,6 +336,13 @@ class Player:
                     if self.gravity == "top":
                         self.hitbox.top = platform[0].bottom + 12
                         self.direction.y = self.hitbox.y
+            # Check if checkpoint is reached
+            for platform in self.platforms:
+                if self.hitbox.colliderect(platform[0]) and platform[1] == "checkpoint_up":
+                    var = self.modify_checkpoint((platform[0].x, platform[0].y), "up", var["room"].get_coords(), var)
+                if self.hitbox.colliderect(platform[0]) and platform[1] == "checkpoint_down":
+                    var = self.modify_checkpoint((platform[0].x, platform[0].y), "down", var["room"].get_coords(), var)
+                        
             self.apply_gravity()
             if self.hitbox.topleft[0] < -self.hitbox.width + 10:
                 self.direction.x = get_screen_size()[0] - self.hitbox.width
@@ -300,8 +355,8 @@ class Player:
                 var["coordinates"][0] += 1
                 var["room"].change_room(var["coordinates"], var)
             elif self.hitbox.bottom > 720 + self.hitbox.height - 10:
-                self.direction.y = -self.hitbox.height
-                self.hitbox.y = -self.hitbox.height
+                self.direction.y = -self.hitbox.height + 3
+                self.hitbox.y = -self.hitbox.height + 3
                 var["coordinates"][1] -= 1
                 var["room"].change_room(var["coordinates"], var)
             elif self.hitbox.top < -self.hitbox.height + 10:
@@ -325,6 +380,8 @@ class Object:
         self.background = crop("./ressources/sprites/backgrounds.png", 32, 32, (30, 30))
         self.spikes = crop("./ressources/sprites/spikes.png", 32, 32, (30, 30))
         self.conveyors = crop("./ressources/sprites/conveyors.png", 32, 32, (30, 30))
+        self.lasers = crop("./ressources/sprites/lasers.png", 32, 32, (30, 30))
+        self.checkpoints = crop("./ressources/sprites/checkpoints.png", 64, 64, (60, 60))
         for i in self.tiles1:
             self.alltiles.append(i)
         for i in self.background:
@@ -336,6 +393,13 @@ class Object:
             self.alltiles.append(i)
         self.objects.append(self.conveyors[0])
         self.objects.append(self.conveyors[4])
+        for i in self.lasers:
+            self.objects.append(i)
+            self.alltiles.append(i)
+        for i in self.checkpoints:
+            self.alltiles.append(i)
+        self.objects.append(self.checkpoints[1])
+        self.objects.append(self.checkpoints[3])
 
     def draw_specific_grayscale_tile(self, surface, position, color, type, tile):
         object = convert_PIL_to_pygame(colored_textures[color][type][tile])
@@ -352,6 +416,12 @@ class Object:
 
     def get_all_conveyors(self):
         return self.conveyors
+
+    def get_all_lasers(self):
+        return self.lasers
+
+    def get_all_checkpoints(self):
+        return self.checkpoints
 
     def get_all_platforms(self):
         return self.tiles1
@@ -370,12 +440,17 @@ class ColoredTextures:
         backgrounds = object.get_all_backgrounds()
         objects = object.get_all_objects()
         conveyors = object.get_all_conveyors()
+        lasers = object.get_all_lasers()
+        checkpoints = object.get_all_checkpoints()
         for couleur in couleur_jeu:
             self.texture_colored[couleur] = {}
             self.texture_colored[couleur]["platform"] = {}
             self.texture_colored[couleur]["background"] = {}
             self.texture_colored[couleur]["object"] = {}
             self.texture_colored[couleur]["conveyor"] = {}
+            self.texture_colored[couleur]["laser"] = {}
+            self.texture_colored[couleur]["checkpoint_up"] = {}
+            self.texture_colored[couleur]["checkpoint_down"] = {}
             for count in range(len(platforms)):
                 self.texture_colored[couleur]["platform"][count] = apply_color(platforms[count], couleur_jeu[couleur])
             for count in range(len(backgrounds)):
@@ -384,6 +459,12 @@ class ColoredTextures:
                 self.texture_colored[couleur]["object"][count] = apply_color(objects[count], couleur_jeu[couleur])
             for count in range(len(conveyors)):
                 self.texture_colored[couleur]["conveyor"][count] = apply_color(conveyors[count], couleur_jeu[couleur])
+            for count in range(len(lasers)):
+                self.texture_colored[couleur]["laser"][count] = apply_color(lasers[count], couleur_jeu[couleur])
+            for count in range(len(checkpoints)):
+                self.texture_colored[couleur]["checkpoint_up"][count] = apply_color(checkpoints[count], couleur_jeu[couleur])
+            for count in range(len(checkpoints)):
+                self.texture_colored[couleur]["checkpoint_down"][count] = apply_color(checkpoints[count], couleur_jeu[couleur])
 
     def get_colored_textures(self):
         return self.texture_colored
@@ -498,6 +579,7 @@ class Room:
         self.surface = None
         self.conveyors_animation = 0
         self.conveyors_timeanimation = 0
+        self.coordinates = coordinates
         try:
             with open(f"./ressources/maps/{map_name}/{coordinates}.vvvvvv", "r") as f:
                 self.data = json.load(f)
@@ -525,8 +607,11 @@ class Room:
                 var["current_music"] = "presenting_vvvvvv"
                 play_music(f"presenting_vvvvvv.ogg")
         self.surface = None
+        self.coordinates = coordinates.copy()
         return var
 
+    def get_coords(self):
+        return self.coordinates
 
     def get_rects(self):
         rects = []
@@ -572,6 +657,18 @@ class Room:
                             elif values["object"] == 9:
                                 # Conveyor right
                                 rects.append((pygame.Rect(position_x, position_y, 30, 30), "conveyor_right"))
+                            elif values["object"] == 10:
+                                # Laser horizontal
+                                rects.append((pygame.Rect(position_x, position_y + 15, 30, 1), "laser_h"))
+                            elif values["object"] == 11:
+                                # Laser vertical
+                                rects.append((pygame.Rect(position_x + 13, position_y, 4, 30), "laser_v"))
+                            elif values["object"] == 12:
+                                # Checkpoint up
+                                rects.append((pygame.Rect(position_x, position_y, 60, 60), "checkpoint_up"))
+                            elif values["object"] == 13:
+                                # Checkpoint down
+                                rects.append((pygame.Rect(position_x, position_y, 60, 60), "checkpoint_down"))
                     except KeyError:
                         pass
                     position_x += 30
@@ -585,7 +682,10 @@ class Room:
         if order == "place":
             try:
                 self.data["map_data"][x][y][type] = data[0]
-                self.data["map_data"][x][y]["color"] = data[1]
+                if self.data["map_data"][x][y][type] == "object" and (data[0] == 10 or data[0] == 11 or data[0] == 12 or data[0] == 13):
+                    self.data["map_data"][x][y]["color"] = "white"
+                else:
+                    self.data["map_data"][x][y]["color"] = data[1]
             except IndexError:
                 pass
         elif order == "remove":
@@ -615,6 +715,16 @@ class Room:
             if self.conveyors_animation == 4:
                 self.conveyors_animation = 0
             var = self.draw_animations(screen, var)
+
+    def draw_checkpoint(self, screen, var):
+        checkpoint_position = var["checkpoint_position"]
+        checkpoint_coordinates = var["checkpoint_coordinates"]
+        if checkpoint_position[0] != (False, False):
+            if checkpoint_coordinates == self.coordinates:
+                if checkpoint_position[1] == "up":
+                    self.object.draw_specific_grayscale_tile(screen, checkpoint_position[0], "white", "checkpoint_up", 1)
+                elif checkpoint_position[1] == "down":
+                    self.object.draw_specific_grayscale_tile(screen, checkpoint_position[0], "white", "checkpoint_down", 3)
 
     def draw_animations(self, screen, var):
         surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
@@ -669,7 +779,16 @@ class Room:
                             pass
                         try:
                             if values["object"] is not None:
-                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "object", values["object"])
+                                if values["object"] == 12 and (self.x_position * 30, self.y_position * 30) != var["checkpoint_position"][0]:
+                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), "gray", "checkpoint_up", 0)
+                                elif values["object"] == 13 and (self.x_position * 30, self.y_position * 30) != var["checkpoint_position"][0]:
+                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), "gray", "checkpoint_down", 2)
+                                elif values["object"] == 12:
+                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), "gray", "checkpoint_up", 0)
+                                elif values["object"] == 13:
+                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), "gray", "checkpoint_down", 2)
+                                else:
+                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "object", values["object"])
                         except KeyError:
                             pass
                         self.x_position += 1
@@ -695,11 +814,24 @@ class Room:
                 except KeyError:
                     pass
             else:
-                text = var["fonts"]["little_generalfont"].render(customtext, True, couleur_jeu["red"])
+                text = var["fonts"]["little_generalfont"].render(customtext, True, couleur_jeu["cyan"])
                 screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
         except TypeError:
             text = var["fonts"]["little_generalfont"].render("This room is empty.", True, couleur_jeu["red"])
             screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
+
+    def get_roomname(self):
+        try:
+            return self.data["roomname"]
+        except KeyError:
+            self.data["roomname"] = ""
+            return self.data["roomname"]
+
+    def write_roomname(self, key, action):
+        if action == "backspace":
+            self.data["roomname"] = self.data["roomname"][:-1]
+        else:
+            self.data["roomname"] += key
 
     def play_music(self, var):
         try:
@@ -718,7 +850,8 @@ class Room:
 class Editor:
     def __init__(self, screen_size, map_name, coordinates):
         self.map = Room(map_name, coordinates)
-        self.box_size = 30
+        self.model_box = 1
+        self.box_size = 30 * self.model_box
         self.screen_size = screen_size
         self.cursor_rect_position = pygame.Rect(0, 0, 0, 0)
         self.object_selected = 0
@@ -727,6 +860,12 @@ class Editor:
 
     def update_mapdata(self, map_name, coordinates):
         self.map = Room(map_name, coordinates)
+
+    def write_roomname(self, key, action):
+        self.map.write_roomname(key, action)
+
+    def get_roomname(self):
+        return self.map.get_roomname()
 
     def change_room(self, coordinates, var):
         self.map.change_room(coordinates, var)
@@ -751,30 +890,35 @@ class Editor:
         for i in range((self.screen_size[0] // self.box_size) + 1):
             for j in range((self.screen_size[1] // self.box_size) + 1):
                 if i*self.box_size == self.cursor_rect_position.x and j*self.box_size == self.cursor_rect_position.y:
-                    self.map.update_data(j, i, type=self.object_type, order="remove")
-            
+                    self.map.update_data(j*self.model_box, i*self.model_box, type=self.object_type, order="remove")
 
     def place_object(self):
         for i in range((self.screen_size[0] // self.box_size) + 1):
             for j in range((self.screen_size[1] // self.box_size) + 1):
                 if i*self.box_size == self.cursor_rect_position.x and j*self.box_size == self.cursor_rect_position.y:
-                    self.map.update_data(j, i, self.object_type, data=[self.object_selected, self.colors[0]], order="place")
+                    self.map.update_data(j*self.model_box, i*self.model_box, self.object_type, data=[self.object_selected, self.colors[0]], order="place")
 
-    def change_current_object(self, object_selected):
+    def change_current_object(self, object_selected, type):
         self.object_selected = object_selected
-
+        if type == "object":
+            if object_selected == 12 or object_selected == 13:
+                self.model_box = 2
+                self.box_size = 30 * self.model_box
+                return
+        self.model_box = 1
+        self.box_size = 30 * self.model_box
 
     def change_type_object(self, object_type):
         self.object_type = object_type
 
+    def get_type_object(self):
+        return self.object_type
 
     def save_data(self, coordinates):
         self.map.save_data(coordinates)
 
-
     def get_color_selected(self):
         return self.colors[0]
-
 
     def change_color(self, color_selected):
         if color_selected == "right":
@@ -947,6 +1091,9 @@ class SelectObjectMenu:
         self.page_platform = 0
         self.page_background = 0
         self.page_object = 0
+
+    def get_select_object_menu(self):
+        return self.select_object_menu
 
     def change_select_object_menu(self, select_object_menu):
         self.select_object_menu = select_object_menu

@@ -27,6 +27,10 @@ def affichage_editeur(screen, var):
     var["editor"].show_cursor(screen)
     var["selectobjectmenu"].draw(screen, var)
     screen.blit(coordinates_show, (screen.get_width() - 155, 10))
+    rect = pygame.Rect(0, 720, screen.get_width(), screen.get_height() - 720)
+    text = var["fonts"]["little_generalfont"].render(var["editor"].get_roomname(), True, couleur_jeu["cyan"])
+    text_rect = text.get_rect(center=(rect.width // 2, rect.y + 15))
+    screen.blit(text, text_rect)
     return var
 
 
@@ -36,9 +40,44 @@ def affichage_selectobject(screen, var):
     """
     screen.fill(couleur["black"])
     var["editor"].draw(screen, var)
+    rect = pygame.Rect(0, 720, screen.get_width(), screen.get_height() - 720)
+    text = var["fonts"]["little_generalfont"].render(var["editor"].get_roomname(), True, couleur_jeu["cyan"])
+    text_rect = text.get_rect(center=(rect.width // 2, rect.y + 15))
+    screen.blit(text, text_rect)
     coordinates_show = var["fonts"]["verylittle_generalfont"].render(str(var["coordinates"]), True, couleur["white"])
     screen.blit(coordinates_show, (screen.get_width() - 155, 10))
     var["selectobjectmenu"].draw(screen, var)
+    return var
+
+
+def affichage_editeur_menu(screen, var):
+    """
+    Affiche le menu de l'éditeur.
+    """
+    var["editor"].draw(screen, var)
+    coordinates_show = var["fonts"]["verylittle_generalfont"].render(str(var["coordinates"]), True, couleur["white"])
+    screen.blit(coordinates_show, (screen.get_width() - 155, 10))
+    var["boxes"]["editeurmenu"].draw(screen, (170, 130))
+    var["menus"]["editeurmenu"].draw((200, 250), 40)
+    rect = pygame.Rect(0, 720, screen.get_width(), screen.get_height() - 720)
+    text = var["fonts"]["little_generalfont"].render(var["editor"].get_roomname(), True, couleur_jeu["cyan"])
+    text_rect = text.get_rect(center=(rect.width // 2, rect.y + 15))
+    screen.blit(text, text_rect)
+    return var
+
+
+def affichage_editeur_room_name(screen, var):
+    """
+    Affiche le menu pour changer le nom d'une salle.
+    """
+    screen.fill(couleur["black"])
+    var["editor"].draw(screen, var)
+    coordinates_show = var["fonts"]["verylittle_generalfont"].render(str(var["coordinates"]), True, couleur["white"])
+    screen.blit(coordinates_show, (screen.get_width() - 155, 10))
+    rect = pygame.Rect(0, 720, screen.get_width(), screen.get_height() - 720)
+    text = var["fonts"]["little_generalfont"].render(var["editor"].get_roomname(), True, couleur_jeu["cyan"])
+    text_rect = text.get_rect(center=(rect.width // 2, rect.y + 15))
+    screen.blit(text, text_rect)
     return var
 
 
@@ -77,6 +116,7 @@ def affichage_jeu(screen, var):
     stars.draw(screen)
     var = var["room"].draw(screen, var)
     var["room"].conveyors_animations(screen, var)
+    var["room"].draw_checkpoint(screen, var)
     var["players"]["viridian"].update_platforms(var["room"].get_rects())
     var["players"]["viridian"].draw(screen, var)
     var["players"]["viridian"].update(var)
@@ -89,6 +129,23 @@ def affichage_jeu(screen, var):
                 pygame.draw.rect(screen, couleur["red"], i[0], 1)
             elif i[1] == "conveyor_left" or i[1] == "conveyor_right":
                 pygame.draw.rect(screen, couleur["yellow"], i[0], 1)
+            elif i[1] == "laser_v" or i[1] == "laser_h":
+                pygame.draw.rect(screen, couleur["yellow"], i[0], 1)
+            elif i[1] == "checkpoint_up" or i[1] == "checkpoint_down":
+                pygame.draw.rect(screen, couleur["green"], i[0], 1)
+    return var
+
+
+def affichage_menu_jeu(screen, var):
+    """
+    Affiche le menu de jeu.
+    """
+    var = affichage_jeu(screen, var)
+    var["boxes"]["menujeu"].draw(screen, (170, 130))
+    var["menus"]["menujeu"].draw((300, 250), 40)
+    screen.blit(var["texts"]["menu"], (380, 150))
+    screen.blit(var["texts"]["warnmenujeu1"], (230, 430))
+    screen.blit(var["texts"]["warnmenujeu2"], (190, 458))
     return var
 
 
@@ -129,6 +186,12 @@ def affichage_menu(var, screen, clock):
         var = affichage_editeur(screen, var)
     elif var["menuSelect"] == "selectobject":
         var = affichage_selectobject(screen, var)
+    elif var["menuSelect"] == "editeurmenu":
+        var = affichage_editeur_menu(screen, var)
+    elif var["menuSelect"] == "editeurroomname":
+        var = affichage_editeur_room_name(screen, var)
+    elif var["menuSelect"] == "menujeu":
+        var = affichage_menu_jeu(screen, var)
 
     if var["debug"]:
         font = pygame.font.SysFont("Arial", 18)
@@ -198,9 +261,7 @@ def controles_jeu(var, event):
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_ESCAPE:
             play_sound("menu.wav")
-            var["menuSelect"] = "principal"
-            var["current_music"] = "menu.ogg"
-            play_music("menu.ogg")
+            var["menuSelect"] = "menujeu"
         elif event.key == pygame.K_SPACE:
             if var["dead"] is False:
                 var["players"]["viridian"].change_gravity()
@@ -213,6 +274,33 @@ def controles_jeu(var, event):
     if pygame.mixer.music.get_endevent() == 0:
         pygame.mixer.music.set_endevent(1)
         pygame.mixer.music.play(-1)
+    return var
+
+
+def controles_menu_jeu(var, event):
+    """
+    Occupation des contrôles du menu jeu.
+    """
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_ESCAPE:
+            var["menuSelect"] = "jeu"
+        if event.key == pygame.K_UP:
+            play_sound("menu.wav")
+            var["menus"]["menujeu"].selection_haut()
+        if event.key == pygame.K_DOWN:
+            play_sound("menu.wav")
+            var["menus"]["menujeu"].selection_bas()
+        if event.key == pygame.K_RETURN:
+            play_sound("menu.wav")
+            if var["menus"]["menujeu"].menuselection[0] == "continuer":
+                var["menuSelect"] = "jeu"
+            elif var["menus"]["menujeu"].menuselection[0] == "retour menu":
+                play_sound("menu.wav")
+                var["checkpoint_position"] = ((433, 568), False)
+                var["checkpoint_coordinates"] = [4, 9]
+                var["menuSelect"] = "principal"
+                var["current_music"] = "menu.ogg"
+                play_music("menu.ogg")
     return var
 
 
@@ -254,14 +342,13 @@ def controles_editeur(var, event):
     """
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_ESCAPE:
-            var["menuSelect"] = "principal"
-            var["current_music"] = "menu"
-            play_music("menu.ogg")
+            var["menuSelect"] = "editeurmenu"
         elif event.key == pygame.K_TAB:
             var["menuSelect"] = "selectobject"
             var["selectobjectmenu"].change_anim_mode()
         elif event.key == pygame.K_s:
             var["editor"].save_data(var["coordinates"])
+            play_sound("gamesaved.wav")
         elif event.key == pygame.K_RIGHT:
             if var["coordinates"][0] < 25 and var["coordinates"][0] > -25:
                 var["coordinates"][0] += 1
@@ -349,21 +436,70 @@ def controles_selectobject(var, event):
                 var["editor"].change_color("right")
 
             for counter in range(var["selectobjectmenu"].get_page_infos()[0], var["selectobjectmenu"].get_page_infos()[1]):
+                menu = var["editor"].get_type_object()
                 try:
-                    if var["selectobjectmenu"].get_platform_buttons()[counter][0].check_click(event.pos):
+                    if var["selectobjectmenu"].get_platform_buttons()[counter][0].check_click(event.pos) and menu == "platform":
                         if var["selectobjectmenu"].get_platform_buttons()[counter][1] == "platform":
-                            var["editor"].change_current_object(counter)
+                            var["editor"].change_current_object(counter, "platform")
                             var["selectobjectmenu"].change_select_object(counter)
-                    elif var["selectobjectmenu"].get_background_buttons()[counter][0].check_click(event.pos):
+                            break
+                    elif var["selectobjectmenu"].get_background_buttons()[counter][0].check_click(event.pos) and menu == "background":
                         if var["selectobjectmenu"].get_background_buttons()[counter][1] == "background":
-                            var["editor"].change_current_object(counter)
+                            var["editor"].change_current_object(counter, "background")
                             var["selectobjectmenu"].change_select_object(counter)
-                    elif var["selectobjectmenu"].get_object_buttons()[counter][0].check_click(event.pos):
+                            break
+                    elif var["selectobjectmenu"].get_object_buttons()[counter][0].check_click(event.pos) and menu == "object":
                         if var["selectobjectmenu"].get_object_buttons()[counter][1] == "object":
-                            var["editor"].change_current_object(counter)
+                            var["editor"].change_current_object(counter, "object")
                             var["selectobjectmenu"].change_select_object(counter)
+                            break
                 except IndexError:
                     pass
+    return var
+
+
+def controles_editeur_menu(var, event):
+    """
+    Occupation des contrôles du menu de l'éditeur.
+    """
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_ESCAPE:
+            var["menuSelect"] = "editeur"
+        if event.key == pygame.K_UP:
+            play_sound("menu.wav")
+            var["menus"]["editeurmenu"].selection_haut()
+        if event.key == pygame.K_DOWN:
+            play_sound("menu.wav")
+            var["menus"]["editeurmenu"].selection_bas()
+        if event.key == pygame.K_RETURN:
+            play_sound("menu.wav")
+            if var["menus"]["editeurmenu"].menuselection[0] == "continuer":
+                var["menuSelect"] = "editeur"
+            elif var["menus"]["editeurmenu"].menuselection[0] == "sauvegarder":
+                var["editor"].save_data(var["coordinates"])
+                var["menuSelect"] = "editeur"
+                play_sound("gamesaved.wav")
+            elif var["menus"]["editeurmenu"].menuselection[0] == "changer nom salle":
+                var["menuSelect"] = "editeurroomname"
+            elif var["menus"]["editeurmenu"].menuselection[0] == "retour menu":
+                var["menuSelect"] = "principal"
+                var["current_music"] = "menu"
+                play_music("menu.ogg")
+    return var
+
+
+def controles_editeur_room_name(var, event):
+    """
+    Occupation des contrôles du menu pour changer le nom de la salle.
+    """
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_RETURN:
+            var["menuSelect"] = "editeur"
+        elif event.key == pygame.K_BACKSPACE:
+            var["editor"].write_roomname(event.unicode, "backspace")
+        else:
+            var["editor"].write_roomname(event.unicode, "write")
+
     return var
 
 
@@ -389,4 +525,10 @@ def controles(var):
             var = controles_editeur(var, event)
         elif var["menuSelect"] == "selectobject":
             var = controles_selectobject(var, event)
+        elif var["menuSelect"] == "editeurmenu":
+            var = controles_editeur_menu(var, event)
+        elif var["menuSelect"] == "editeurroomname":
+            var = controles_editeur_room_name(var, event)
+        elif var["menuSelect"] == "menujeu":
+            var = controles_menu_jeu(var, event)
     return var

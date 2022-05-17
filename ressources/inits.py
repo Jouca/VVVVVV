@@ -87,6 +87,21 @@ def init_texts(fonts):
             True,
             couleur["cyan"]
         ),
+        "menu": fonts["normal_generalfont"].render(
+            "Menu",
+            True,
+            couleur["cyan"]
+        ),
+        "warnmenujeu1": fonts["verylittle_generalfont"].render(
+            "(Votre progression sera",
+            True,
+            couleur["white"]
+        ),
+        "warnmenujeu2": fonts["verylittle_generalfont"].render(
+            "sauvegardée si vous quittez)",
+            True,
+            couleur["white"]
+        ),
     }
     return texts
 
@@ -112,6 +127,22 @@ def init_menu_selectors(font, screen):
                 ["éditeur histoire", couleur["cyan"], font["little_generalfont"]],
             ]
         ),
+        "editeurmenu": MenuSelector(
+            screen,
+            [
+                ["continuer", couleur["cyan"], font["little_generalfont"]],
+                ["sauvegarder", couleur["cyan"], font["little_generalfont"]],
+                ["changer nom salle", couleur["cyan"], font["little_generalfont"]],
+                ["retour menu", couleur["cyan"], font["little_generalfont"]],
+            ]
+        ),
+        "menujeu": MenuSelector(
+            screen,
+            [
+                ["continuer", couleur["cyan"], font["little_generalfont"]],
+                ["retour menu", couleur["cyan"], font["little_generalfont"]],
+            ]
+        ),
     }
     return menu_selectors
 
@@ -121,6 +152,8 @@ def init_boxes():
     """
     boxes = {
         "selector": Box((screen_size[0] - 40, 300), couleur_jeu["blurple"]),
+        "editeurmenu": Box((600, 400), couleur_jeu["blurple"]),
+        "menujeu": Box((600, 400), couleur_jeu["blurple"]),
     }
     return boxes
 

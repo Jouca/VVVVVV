@@ -60,6 +60,8 @@ def main():
         "collisions_show": False,
         "dead": False,
         "dead_animation": 0,
+        "checkpoint_position": ((433, 568), False),
+        "checkpoint_coordinates": [4, 9],
     }
 
     frame_per_second = 60

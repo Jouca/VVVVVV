@@ -24,6 +24,7 @@ couleur_jeu = {
     "neon_red": (206, 5, 0),
     "neon_less_red": (156, 0, 0),
     "black": (0, 0, 0),
+    "gray": (96, 96, 96),
 }
 couleur_joueurs = {
     "viridian": (16, 240, 240),
