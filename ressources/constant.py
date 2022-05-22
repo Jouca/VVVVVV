@@ -1,3 +1,5 @@
+# Constantes du jeu
+
 import pygame
 
 try:
@@ -6,7 +8,7 @@ except ModuleNotFoundError:
     from .classes import Object, BGStars
 
 DEBUG = True
-VERSION = "V. infdev"
+VERSION = "V. NSI"
 screen_size = (960, 780)
 
 # Variables importantes

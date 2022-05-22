@@ -1,6 +1,7 @@
 import pygame, json, os
 from PIL import Image, ImageOps
 
+
 def charger_ressource(path):
     """
     Permet de lire les ressources du jeu.
