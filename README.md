@@ -45,7 +45,7 @@
  <li>TAB pour ouvrir la liste des objets dans l'éditeur</li>
  <li>Clic gauche pour ajouter un objet ou sélectionner un objet dans l'éditeur</li>
  <li>Clic droit pour supprimer un objet dans l'éditeur</li>
-<ul>
+</ul>
  
 ---
 
