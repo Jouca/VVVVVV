@@ -41,6 +41,8 @@ class Clock:
     def reset(self):
         self.time = 0
         self.last_time = 0
+        self.delta_time = 0
+        self.clock = pygame.time.Clock()
 
     def convert_time(self):
         """

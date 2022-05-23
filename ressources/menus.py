@@ -447,8 +447,8 @@ def controles_niveaux_editeur(var, event):
                 var["menuSelect"] = "createlevel"
             else:
                 for button in var["menus"]["editeurniveau"].get_menus():
-                    if button == var["menus"]["editeurniveau"].menuselection[0]:
-                        var["currentMap"] = button
+                    if button[0] == var["menus"]["editeurniveau"].menuselection[0]:
+                        var["currentMap"] = button[0]
                         var["coordinates"] = [4, 9]
                         var["menuSelect"] = "editeur"
                         data = map_editor_process(var["currentMap"], var["coordinates"])
@@ -480,12 +480,12 @@ def controles_niveaux_jouer(var, event):
                 var["menuSelect"] = "online"
             else:
                 for button in var["menus"]["jouerniveau"].get_menus():
-                    if button == var["menus"]["jouerniveau"].menuselection[0]:
+                    if button[0] == var["menus"]["jouerniveau"].menuselection[0]:
                         var["menuSelect"] = "jeu"
                         var["coordinates"] = [4, 9]
                         var["clock"].reset()
                         var["clock"].start_clock()
-                        var["room"] = Room(button, [4, 9])
+                        var["room"] = Room(button[0], [4, 9])
                         var["room"].play_music(var)
                         var["room"].change_room(var["coordinates"], var)
                         var["players"]["viridian"].update_positions([433, 568])
