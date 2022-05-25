@@ -1,6 +1,5 @@
-import pygame
+# Couleurs concernant le jeu
 
-# Couleurs jeu
 couleur_jeu = {
     "green": (148, 238, 130),
     "blue": (131, 141, 235),

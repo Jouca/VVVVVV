@@ -1,14 +1,15 @@
 import pygame
 
-from ressources.constant import screen_size, DEBUG
-from ressources.inits import init_screen, init_fonts, init_menu_selectors, init_texts, init_boxes, init_buttons
-from ressources.classes import UpParallax, SelectObjectMenu, Editor, Room, Player
+from ressources.constant import screen_size, DEBUG, couleur
+from ressources.inits import init_screen, init_fonts, init_menu_selectors, init_texts, init_boxes
+from ressources.inits import init_buttons
+from ressources.classes import UpParallax, SelectObjectMenu, Editor, Room, Player, Flash, Clock
 from ressources.functions import charger_ressource, play_music
 from ressources.menus import affichage_menu, controles
 
 pygame.mixer.pre_init(frequency=44100, size=-16, channels=1, buffer=512)
 pygame.mixer.init()
-pygame.mixer.music.set_volume(1) 
+pygame.mixer.music.set_volume(0.3)
 clock = pygame.time.Clock()
 
 
@@ -21,6 +22,7 @@ def main():
     menus = init_menu_selectors(fonts, screen)
     var = {
         "debug": DEBUG,
+        "screen": screen,
         "screen_size": screen_size,
         "width": screen_size[0],
         "heigth": screen_size[1],
@@ -37,8 +39,11 @@ def main():
             charger_ressource("/sprites/menuBG.png"),
             6
         ),
+        "deaths": 0,
+        "flips": 0,
         "timeAnimation": 0,
         "currentMap": "history",
+        "levelname": "",
         "coordinates": [4, 9],
         "clicked": False,
         "left_click": False,
@@ -59,9 +64,14 @@ def main():
         "right": False,
         "collisions_show": False,
         "dead": False,
+        "victory": False,
         "dead_animation": 0,
+        "victory_animation": 0,
+        "teleporter_activated": False,
         "checkpoint_position": ((433, 568), False),
         "checkpoint_coordinates": [4, 9],
+        "flash": Flash(screen_size, couleur["white"], 10),
+        "clock": Clock()
     }
 
     frame_per_second = 60
@@ -69,6 +79,7 @@ def main():
     while var["jeu_en_cours"]:
         clock.tick(frame_per_second)
         pressed_key = pygame.key.get_pressed()
+        var["clock"].tick()
         if pressed_key[pygame.K_LEFT]:
             var["left"] = True
         else:
@@ -80,6 +91,7 @@ def main():
 
         var = affichage_menu(var, screen, clock)
         var = controles(var)
+    exit()
 
 
 # START GAME

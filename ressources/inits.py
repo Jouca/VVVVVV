@@ -15,6 +15,7 @@ all_platforms = Object().get_all_platforms()
 all_backgrounds = Object().get_all_backgrounds()
 all_objects = Object().get_all_objects()
 
+
 def init_screen():
     """
     Initialise les paramètres de pygame.
@@ -52,6 +53,10 @@ def init_fonts():
         "verylittle_generalfont": pygame.font.Font(
             "./ressources/fonts/PetMe64.ttf",
             20
+        ),
+        "absolutelittle_generalfont": pygame.font.Font(
+            "./ressources/fonts/PetMe64.ttf",
+            17
         ),
     }
     return fonts
@@ -102,6 +107,16 @@ def init_texts(fonts):
             True,
             couleur["white"]
         ),
+        "typelevelname": fonts["normal_generalfont"].render(
+            "Nom du niveau :",
+            True,
+            couleur["cyan"]
+        ),
+        "pressenter": fonts["little_generalfont"].render(
+            "Appuyez sur Entrée pour continuer",
+            True,
+            couleur["white"]
+        ),
     }
     return texts
 
@@ -143,8 +158,25 @@ def init_menu_selectors(font, screen):
                 ["retour menu", couleur["cyan"], font["little_generalfont"]],
             ]
         ),
+        "enligne": MenuSelector(
+            screen,
+            [
+                ["éditeur niveau", couleur["cyan"], font["little_generalfont"]],
+                ["jouer niveau", couleur["cyan"], font["little_generalfont"]],
+                ["retour", couleur["cyan"], font["little_generalfont"]],
+            ]
+        ),
+        "editeurniveau": MenuSelector(
+            screen,
+            []
+        ),
+        "jouerniveau": MenuSelector(
+            screen,
+            [],
+        ),
     }
     return menu_selectors
+
 
 def init_boxes():
     """
@@ -154,6 +186,7 @@ def init_boxes():
         "selector": Box((screen_size[0] - 40, 300), couleur_jeu["blurple"]),
         "editeurmenu": Box((600, 400), couleur_jeu["blurple"]),
         "menujeu": Box((600, 400), couleur_jeu["blurple"]),
+        "victory": Box((700, 400), couleur_jeu["blurple"]),
     }
     return boxes
 

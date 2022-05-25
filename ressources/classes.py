@@ -1,14 +1,60 @@
 import json
-import pygame, random, math
-
-from ressources.functions import play_sound
-
+import pygame
+import random
+import math
 try:
-    from functions import crop, convert_PIL_to_pygame, apply_color, get_screen_size, play_music, stop_music
+    from functions import crop, convert_PIL_to_pygame, apply_color, get_screen_size, play_music
+    from functions import stop_music, play_sound
     from colors import couleur_jeu, couleur_joueurs
 except ModuleNotFoundError:
-    from .functions import crop, convert_PIL_to_pygame, apply_color, get_screen_size, play_music, stop_music
+    from .functions import crop, convert_PIL_to_pygame, apply_color, get_screen_size, play_music
+    from .functions import stop_music, play_sound
     from .colors import couleur_jeu, couleur_joueurs
+
+
+class Clock:
+    """
+    Classe qui gère le temps.
+    """
+    def __init__(self):
+        self.clock = pygame.time.Clock()
+        self.fps = 60
+        self.time = 0
+        self.delta_time = 0
+        self.last_time = 0
+        self.stop = False
+
+    def tick(self):
+        if self.stop is False:
+            self.delta_time = self.clock.tick(self.fps)
+            self.time += self.delta_time
+
+    def get_time(self):
+        self.last_time = self.time
+
+    def stop_clock(self):
+        self.stop = True
+
+    def start_clock(self):
+        self.stop = False
+
+    def reset(self):
+        self.time = 0
+        self.last_time = 0
+        self.delta_time = 0
+        self.clock = pygame.time.Clock()
+
+    def convert_time(self):
+        """
+        Convertit le temps en secondes en temps en heures, minutes, secondes et millisecondes.
+        """
+        milliseconds = self.time % 1000
+        seconds = (self.time // 1000) % 60
+        minutes = ((self.time // 1000) // 60) % 60
+        hours = math.floor(minutes // 60)
+        if hours > 0:
+            return "{}:{}:{}.{}".format(hours, minutes, seconds, milliseconds)
+        return "{}:{}.{}".format(minutes, seconds, milliseconds)
 
 
 class ImageButton:
@@ -18,7 +64,7 @@ class ImageButton:
         self.rect = self.surface.get_rect()
         self.color = color
         self.background = couleur_jeu["background"]
-        self.imagerect = self.image.get_rect(center = self.rect.center)
+        self.imagerect = self.image.get_rect(center=self.rect.center)
         self.collision_rect = pygame.Rect(0, 0, size[0], size[1])
 
     def check_click(self, pos):
@@ -42,6 +88,7 @@ class ImageButton:
     def change_background(self, color):
         self.background = color
 
+
 class Box:
     def __init__(self, rect, color):
         self.rect = rect
@@ -55,6 +102,23 @@ class Box:
 
     def get_surface(self):
         return pygame.Surface(self.rect, pygame.SRCALPHA)
+
+
+class Flash:
+    def __init__(self, rect, color, time):
+        self.rect = rect
+        self.time = time
+        self.counter = 0
+        self.surface = pygame.Surface(self.rect)
+        self.surface.fill(color)
+
+    def draw(self, screen):
+        self.counter += 1
+        if self.counter < self.time:
+            screen.blit(self.surface, (0, 0))
+
+    def reset(self):
+        self.counter = 0
 
 
 class Player:
@@ -112,7 +176,6 @@ class Player:
                 player_sprite_moving[index]
             ])
 
-
     def update_positions(self, positions):
         self.positions = positions
         self.direction = pygame.math.Vector2(self.positions)
@@ -138,25 +201,6 @@ class Player:
         else:
             self.walk_animation_counter = 0
             self.walk_animation_type = "normal"
-
-    def die(self, var):
-        self.emotion = "sad"
-        self.walk_animation_type = "normal"
-        var["dead_animation"] += 1
-        if var["dead_animation"] == 1:
-            self.player_name = "dead"
-            play_sound("hurt.wav")
-        if var["dead_animation"] == 60:
-            var["dead"] = False
-            var["dead_animation"] = 0
-            self.player_name = "viridian"
-            self.emotion = "happy"
-            self.directions["down"] = True
-            self.directions["up"] = False
-            self.gravity = "bottom"
-            self.update_positions([var["checkpoint_position"][0][0] + 15, var["checkpoint_position"][0][1]])
-            var["coordinates"] = var["checkpoint_coordinates"].copy()
-            var["room"].change_room(var["coordinates"], var)
 
     def get_index(self):
         if self.emotion == "happy":
@@ -187,7 +231,10 @@ class Player:
         self.platforms = platforms
 
     def modify_checkpoint(self, coordinates, direction, room_coords, var):
-        if coordinates != var["checkpoint_position"][0]:
+        if (
+            coordinates != var["checkpoint_position"][0] or
+            room_coords != var["checkpoint_coordinates"]
+        ):
             self.checkpoint_position = (coordinates, direction)
             self.checkpoint_coordinates = room_coords
             var["checkpoint_position"] = self.checkpoint_position
@@ -197,7 +244,12 @@ class Player:
 
     def change_gravity(self):
         for platform in self.platforms:
-            if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] in self.authorized_platforms:
+            if self.hitbox.colliderect(
+                platform[0].x,
+                platform[0].y - 12,
+                platform[0].width,
+                platform[0].height
+            ) and platform[1] in self.authorized_platforms:
                 if self.gravity == "bottom":
                     play_sound("jump.wav")
                     self.gravity_enabled = True
@@ -207,7 +259,12 @@ class Player:
                     self.direction.y -= self.speed
                     self.hitbox.y -= self.speed
                     break
-            elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] in self.authorized_platforms:
+            elif self.hitbox.colliderect(
+                platform[0].x,
+                platform[0].y + 12,
+                platform[0].width,
+                platform[0].height
+            ) and platform[1] in self.authorized_platforms:
                 if self.gravity == "top":
                     play_sound("jump2.wav")
                     self.gravity_enabled = True
@@ -246,6 +303,61 @@ class Player:
             self.direction.x += (self.speed - 7)
             self.hitbox.x += (self.speed - 7)
 
+    def die(self, var):
+        self.emotion = "sad"
+        self.walk_animation_type = "normal"
+        var["dead_animation"] += 1
+        if var["dead_animation"] == 1:
+            var["deaths"] += 1
+            self.player_name = "dead"
+            play_sound("hurt.wav")
+        if var["dead_animation"] == 60:
+            var["dead"] = False
+            var["dead_animation"] = 0
+            self.player_name = "viridian"
+            self.emotion = "happy"
+            if var["checkpoint_position"][1] == "down":
+                self.gravity = "top"
+                self.directions["down"] = False
+                self.directions["up"] = True
+            else:
+                self.gravity = "bottom"
+                self.directions["down"] = True
+                self.directions["up"] = False
+            self.update_positions(
+                [var["checkpoint_position"][0][0] + 15, var["checkpoint_position"][0][1]]
+            )
+            var["coordinates"] = var["checkpoint_coordinates"].copy()
+            var["room"].change_room(var["coordinates"], var)
+
+    def victory(self, var):
+        var["victory_animation"] += 1
+        if var["victory_animation"] == 1:
+            var["teleporter_activated"] = True
+            play_sound("gamesaved.wav")
+        if var["victory_animation"] >= 60:
+            var["flash"].draw(var["screen"])
+        if var["victory_animation"] == 60:
+            var["flash"].reset()
+            play_sound("preteleport.wav")
+        elif var["victory_animation"] == 120:
+            var["flash"].reset()
+            play_sound("preteleport.wav")
+        elif var["victory_animation"] == 180:
+            var["flash"].reset()
+            play_sound("preteleport.wav")
+        elif var["victory_animation"] == 210:
+            var["flash"].reset()
+            stop_music()
+            play_sound("preteleport.wav")
+        elif var["victory_animation"] == 260:
+            play_sound("teleport.wav")
+            var["teleporter_activated"] = False
+        elif var["victory_animation"] == 340:
+            play_sound("victory.ogg")
+            var["menuSelect"] = "victory"
+            var["victory"] = 0
+
     def update(self, var):
         if var["dead"]:
             self.die(var)
@@ -256,11 +368,12 @@ class Player:
                     var["dead"] = True
                     self.die(var)
                     return
-            self.walk_animation(var)
-            if var["left"]:
-                self.move("left")
-            if var["right"]:
-                self.move("right")
+            if var["victory"] is False:
+                self.walk_animation(var)
+                if var["left"]:
+                    self.move("left")
+                if var["right"]:
+                    self.move("right")
             for platform in self.platforms:
                 if self.hitbox.colliderect(platform[0]) and platform[1] == "laser_v":
                     if self.lock_laser_v[0] is False:
@@ -276,7 +389,12 @@ class Player:
                             self.gravity = "bottom"
                             self.lock_laser_v = (True, self.hitbox.x)
                             play_sound("blip.wav")
-                elif self.hitbox.colliderect(platform[0].x, platform[0].y, platform[0].width, platform[0].height) and platform[1] == "laser_h":
+                elif self.hitbox.colliderect(
+                    platform[0].x,
+                    platform[0].y,
+                    platform[0].width,
+                    platform[0].height
+                ) and platform[1] == "laser_h":
                     if self.lock_laser_h[0] is False:
                         if self.gravity == "bottom":
                             self.directions["up"] = True
@@ -297,7 +415,12 @@ class Player:
                     if abs(self.hitbox.x - abs(self.lock_laser_v[1])) > 32:
                         self.lock_laser_v = (False, 0)
             for platform in self.platforms:
-                if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] in self.conveyors:
+                if self.hitbox.colliderect(
+                    platform[0].x,
+                    platform[0].y - 12,
+                    platform[0].width,
+                    platform[0].height
+                ) and platform[1] in self.conveyors:
                     if self.gravity == "bottom":
                         self.hitbox.bottom = platform[0].top - 12
                         self.direction.y = self.hitbox.y
@@ -307,7 +430,12 @@ class Player:
                         if platform[1] == "conveyor_right":
                             self.move_conveyor("right")
                             var["right"] = True
-                elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] in self.conveyors:
+                elif self.hitbox.colliderect(
+                    platform[0].x,
+                    platform[0].y + 12,
+                    platform[0].width,
+                    platform[0].height
+                ) and platform[1] in self.conveyors:
                     if self.gravity == "top":
                         self.hitbox.top = platform[0].bottom + 12
                         self.direction.y = self.hitbox.y
@@ -318,7 +446,9 @@ class Player:
                             self.move_conveyor("right")
                             var["right"] = True
             for platform in self.platforms:
-                if self.hitbox.colliderect(platform[0]) and platform[1] in self.authorized_platforms:
+                if self.hitbox.colliderect(
+                    platform[0]
+                ) and platform[1] in self.authorized_platforms:
                     if var["right"]:
                         self.hitbox.right = platform[0].left
                         self.direction.x = self.hitbox.x
@@ -328,21 +458,39 @@ class Player:
                         self.direction.x = self.hitbox.x
                         break
             for platform in self.platforms:
-                if self.hitbox.colliderect(platform[0].x, platform[0].y - 12, platform[0].width, platform[0].height) and platform[1] in self.authorized_platforms:
+                if self.hitbox.colliderect(
+                    platform[0].x,
+                    platform[0].y - 12,
+                    platform[0].width,
+                    platform[0].height
+                ) and platform[1] in self.authorized_platforms:
                     if self.gravity == "bottom":
                         self.hitbox.bottom = platform[0].top - 12
                         self.direction.y = self.hitbox.y
-                elif self.hitbox.colliderect(platform[0].x, platform[0].y + 12, platform[0].width, platform[0].height) and platform[1] in self.authorized_platforms:
+                elif self.hitbox.colliderect(
+                    platform[0].x,
+                    platform[0].y + 12,
+                    platform[0].width,
+                    platform[0].height
+                ) and platform[1] in self.authorized_platforms:
                     if self.gravity == "top":
                         self.hitbox.top = platform[0].bottom + 12
                         self.direction.y = self.hitbox.y
             # Check if checkpoint is reached
             for platform in self.platforms:
                 if self.hitbox.colliderect(platform[0]) and platform[1] == "checkpoint_up":
-                    var = self.modify_checkpoint((platform[0].x, platform[0].y), "up", var["room"].get_coords(), var)
+                    var = self.modify_checkpoint(
+                        (platform[0].x, platform[0].y), "up", var["room"].get_coords(), var
+                    )
                 if self.hitbox.colliderect(platform[0]) and platform[1] == "checkpoint_down":
-                    var = self.modify_checkpoint((platform[0].x, platform[0].y), "down", var["room"].get_coords(), var)
-                        
+                    var = self.modify_checkpoint(
+                        (platform[0].x, platform[0].y), "down", var["room"].get_coords(), var
+                    )
+            # Check if teleporter is reached
+            for platform in self.platforms:
+                if self.hitbox.colliderect(platform[0]) and platform[1] == "teleporter":
+                    var["victory"] = True
+                    var["clock"].stop_clock()
             self.apply_gravity()
             if self.hitbox.topleft[0] < -self.hitbox.width + 10:
                 self.direction.x = get_screen_size()[0] - self.hitbox.width
@@ -364,12 +512,18 @@ class Player:
                 self.hitbox.y = 720 - self.hitbox.height
                 var["coordinates"][1] += 1
                 var["room"].change_room(var["coordinates"], var)
-
+        if var["victory"]:
+            self.victory(var)
 
     def draw(self, screen, var):
         if var["collisions_show"]:
             pygame.draw.rect(screen, couleur_jeu["red"], self.hitbox)
         screen.blit(self.get_specific_sprite(), self.direction)
+
+    def reset_gravity(self):
+        self.gravity = "bottom"
+        self.directions["down"] = True
+        self.directions["up"] = False
 
 
 class Object:
@@ -382,6 +536,7 @@ class Object:
         self.conveyors = crop("./ressources/sprites/conveyors.png", 32, 32, (30, 30))
         self.lasers = crop("./ressources/sprites/lasers.png", 32, 32, (30, 30))
         self.checkpoints = crop("./ressources/sprites/checkpoints.png", 64, 64, (60, 60))
+        self.teleporters = crop("./ressources/sprites/teleporters.png", 384, 384, (240, 240))
         for i in self.tiles1:
             self.alltiles.append(i)
         for i in self.background:
@@ -400,11 +555,18 @@ class Object:
             self.alltiles.append(i)
         self.objects.append(self.checkpoints[1])
         self.objects.append(self.checkpoints[3])
+        for i in self.teleporters:
+            self.alltiles.append(i)
+        self.objects.append(self.teleporters[0])
 
     def draw_specific_grayscale_tile(self, surface, position, color, type, tile):
         object = convert_PIL_to_pygame(colored_textures[color][type][tile])
         surface.blit(object, position)
-    
+
+    def draw_tile(self, surface, position, tile, index):
+        if tile == "teleporters":
+            surface.blit(convert_PIL_to_pygame(self.teleporters[index]), position)
+
     def get_tiles(self):
         return self.alltiles
 
@@ -452,19 +614,33 @@ class ColoredTextures:
             self.texture_colored[couleur]["checkpoint_up"] = {}
             self.texture_colored[couleur]["checkpoint_down"] = {}
             for count in range(len(platforms)):
-                self.texture_colored[couleur]["platform"][count] = apply_color(platforms[count], couleur_jeu[couleur])
+                self.texture_colored[couleur]["platform"][count] = apply_color(
+                    platforms[count], couleur_jeu[couleur]
+                )
             for count in range(len(backgrounds)):
-                self.texture_colored[couleur]["background"][count] = apply_color(backgrounds[count], couleur_jeu[couleur])
+                self.texture_colored[couleur]["background"][count] = apply_color(
+                    backgrounds[count], couleur_jeu[couleur]
+                )
             for count in range(len(objects)):
-                self.texture_colored[couleur]["object"][count] = apply_color(objects[count], couleur_jeu[couleur])
+                self.texture_colored[couleur]["object"][count] = apply_color(
+                    objects[count], couleur_jeu[couleur]
+                )
             for count in range(len(conveyors)):
-                self.texture_colored[couleur]["conveyor"][count] = apply_color(conveyors[count], couleur_jeu[couleur])
+                self.texture_colored[couleur]["conveyor"][count] = apply_color(
+                    conveyors[count], couleur_jeu[couleur]
+                )
             for count in range(len(lasers)):
-                self.texture_colored[couleur]["laser"][count] = apply_color(lasers[count], couleur_jeu[couleur])
+                self.texture_colored[couleur]["laser"][count] = apply_color(
+                    lasers[count], couleur_jeu[couleur]
+                )
             for count in range(len(checkpoints)):
-                self.texture_colored[couleur]["checkpoint_up"][count] = apply_color(checkpoints[count], couleur_jeu[couleur])
+                self.texture_colored[couleur]["checkpoint_up"][count] = apply_color(
+                    checkpoints[count], couleur_jeu[couleur]
+                )
             for count in range(len(checkpoints)):
-                self.texture_colored[couleur]["checkpoint_down"][count] = apply_color(checkpoints[count], couleur_jeu[couleur])
+                self.texture_colored[couleur]["checkpoint_down"][count] = apply_color(
+                    checkpoints[count], couleur_jeu[couleur]
+                )
 
     def get_colored_textures(self):
         return self.texture_colored
@@ -478,9 +654,13 @@ class ColoredPlayers:
             self.players_colored[player]["normal"] = []
             self.players_colored[player]["moving"] = []
             for sprites in object:
-                self.players_colored[player]["normal"].append(apply_color(sprites[0], couleur_joueurs[player]))
-                self.players_colored[player]["moving"].append(apply_color(sprites[1], couleur_joueurs[player]))
-    
+                self.players_colored[player]["normal"].append(
+                    apply_color(sprites[0], couleur_joueurs[player])
+                )
+                self.players_colored[player]["moving"].append(
+                    apply_color(sprites[1], couleur_joueurs[player])
+                )
+
     def get_colored_players(self):
         return self.players_colored
 
@@ -525,7 +705,6 @@ class UpParallax:
 
 class MenuSelector:
     def __init__(self, screen, menulist):
-        # [["start", couleur["cyan"], font["little_generalfont"]], ["quit", couleur["cyan"], font["little_generalfont"]]]
         self.screen = screen
         self.menulist = []
         for i in menulist:
@@ -538,7 +717,7 @@ class MenuSelector:
         for i in self.menulist:
             if i[0] == self.menuselection[0]:
                 text = i[2].render(
-                    "[ "+i[0].upper()+" ]",
+                    "[ " + i[0].upper() + " ]",
                     True,
                     i[1]
                 )
@@ -569,6 +748,9 @@ class MenuSelector:
         test.insert(0, value)
         self.menuselection = test
 
+    def get_menus(self):
+        return self.menulist
+
 
 class Room:
     def __init__(self, map_name, coordinates):
@@ -579,6 +761,8 @@ class Room:
         self.surface = None
         self.conveyors_animation = 0
         self.conveyors_timeanimation = 0
+        self.teleporter_animation = 0
+        self.teleporter_timeanimation = 0
         self.coordinates = coordinates
         try:
             with open(f"./ressources/maps/{map_name}/{coordinates}.vvvvvv", "r") as f:
@@ -605,7 +789,7 @@ class Room:
         except TypeError:
             if var["current_music"] != "presenting_vvvvvv":
                 var["current_music"] = "presenting_vvvvvv"
-                play_music(f"presenting_vvvvvv.ogg")
+                play_music("presenting_vvvvvv.ogg")
         self.surface = None
         self.coordinates = coordinates.copy()
         return var
@@ -629,46 +813,94 @@ class Room:
                         if values["object"] is not None:
                             if values["object"] == 0 or values["object"] == 4:
                                 # Spike bottom
-                                rects.append((pygame.Rect(position_x + 11, position_y, 4, 8), "enemy"))
-                                rects.append((pygame.Rect(position_x + 7, position_y + 7, 13, 8), "enemy"))
-                                rects.append((pygame.Rect(position_x + 4, position_y + 15, 20, 8), "enemy"))
-                                rects.append((pygame.Rect(position_x, position_y + 22, 28, 8), "enemy"))
+                                rects.append(
+                                    (pygame.Rect(position_x + 11, position_y, 4, 8), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 7, position_y + 7, 13, 8), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 4, position_y + 15, 20, 8), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y + 22, 28, 8), "enemy")
+                                )
                             elif values["object"] == 1 or values["object"] == 5:
                                 # Spike top
-                                rects.append((pygame.Rect(position_x, position_y, 28, 8), "enemy"))
-                                rects.append((pygame.Rect(position_x + 4, position_y + 8, 20, 8), "enemy"))
-                                rects.append((pygame.Rect(position_x + 7, position_y + 15, 13, 8), "enemy"))
-                                rects.append((pygame.Rect(position_x + 11, position_y + 22, 4, 8), "enemy"))
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y, 28, 8), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 4, position_y + 8, 20, 8), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 7, position_y + 15, 13, 8), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 11, position_y + 22, 4, 8), "enemy")
+                                )
                             elif values["object"] == 2 or values["object"] == 6:
                                 # Spike right
-                                rects.append((pygame.Rect(position_x + 22, position_y + 3, 8, 27), "enemy"))
-                                rects.append((pygame.Rect(position_x + 15, position_y + 6, 8, 20), "enemy"))
-                                rects.append((pygame.Rect(position_x + 7, position_y + 10, 8, 13), "enemy"))
-                                rects.append((pygame.Rect(position_x, position_y + 15, 8, 4), "enemy"))
+                                rects.append(
+                                    (pygame.Rect(position_x + 22, position_y + 3, 8, 27), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 15, position_y + 6, 8, 20), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 7, position_y + 10, 8, 13), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y + 15, 8, 4), "enemy")
+                                )
                             elif values["object"] == 3 or values["object"] == 7:
                                 # Spike left
-                                rects.append((pygame.Rect(position_x, position_y + 3, 8, 27), "enemy"))
-                                rects.append((pygame.Rect(position_x + 7, position_y + 6, 8, 20), "enemy"))
-                                rects.append((pygame.Rect(position_x + 15, position_y + 10, 8, 13), "enemy"))
-                                rects.append((pygame.Rect(position_x + 22, position_y + 15, 8, 4), "enemy"))
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y + 3, 8, 27), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 7, position_y + 6, 8, 20), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 15, position_y + 10, 8, 13), "enemy")
+                                )
+                                rects.append(
+                                    (pygame.Rect(position_x + 22, position_y + 15, 8, 4), "enemy")
+                                )
                             elif values["object"] == 8:
                                 # Conveyor left
-                                rects.append((pygame.Rect(position_x, position_y, 30, 30), "conveyor_left"))
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y, 30, 30), "conveyor_left")
+                                )
                             elif values["object"] == 9:
                                 # Conveyor right
-                                rects.append((pygame.Rect(position_x, position_y, 30, 30), "conveyor_right"))
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y, 30, 30), "conveyor_right")
+                                )
                             elif values["object"] == 10:
                                 # Laser horizontal
-                                rects.append((pygame.Rect(position_x, position_y + 15, 30, 1), "laser_h"))
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y + 15, 30, 1), "laser_h")
+                                )
                             elif values["object"] == 11:
                                 # Laser vertical
-                                rects.append((pygame.Rect(position_x + 13, position_y, 4, 30), "laser_v"))
+                                rects.append(
+                                    (pygame.Rect(position_x + 13, position_y, 4, 30), "laser_v")
+                                )
                             elif values["object"] == 12:
                                 # Checkpoint up
-                                rects.append((pygame.Rect(position_x, position_y, 60, 60), "checkpoint_up"))
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y, 60, 60), "checkpoint_up")
+                                )
                             elif values["object"] == 13:
                                 # Checkpoint down
-                                rects.append((pygame.Rect(position_x, position_y, 60, 60), "checkpoint_down"))
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y, 60, 60), "checkpoint_down")
+                                )
+                            elif values["object"] == 14:
+                                rects.append(
+                                    (pygame.Rect(position_x, position_y, 240, 240), "teleporter")
+                                )
                     except KeyError:
                         pass
                     position_x += 30
@@ -682,7 +914,9 @@ class Room:
         if order == "place":
             try:
                 self.data["map_data"][x][y][type] = data[0]
-                if self.data["map_data"][x][y][type] == "object" and (data[0] == 10 or data[0] == 11 or data[0] == 12 or data[0] == 13):
+                if self.data["map_data"][x][y][type] == "object" and (
+                    data[0] == 10 or data[0] == 11 or data[0] == 12 or data[0] == 13
+                ):
                     self.data["map_data"][x][y]["color"] = "white"
                 else:
                     self.data["map_data"][x][y]["color"] = data[1]
@@ -696,7 +930,6 @@ class Room:
         else:
             self.data["map_data"][x][y] = {}
         self.surface = None
-
 
     def save_data(self, coordinates):
         with open(f"./ressources/maps/{self.map_name}/{coordinates}.vvvvvv", "w") as f:
@@ -716,15 +949,31 @@ class Room:
                 self.conveyors_animation = 0
             var = self.draw_animations(screen, var)
 
+    def teleporter_animations(self, screen, var):
+        self.teleporter_timeanimation += 1
+        if self.teleporter_timeanimation >= 15:
+            self.teleporter_timeanimation = 0
+            self.teleporter_animation += 1
+            if self.teleporter_animation == 5:
+                self.teleporter_animation = 1
+            var = self.draw_animations(screen, var)
+
+    def reset_teleporter(self):
+        self.teleporter_animation = 0
+
     def draw_checkpoint(self, screen, var):
         checkpoint_position = var["checkpoint_position"]
         checkpoint_coordinates = var["checkpoint_coordinates"]
         if checkpoint_position[0] != (False, False):
             if checkpoint_coordinates == self.coordinates:
                 if checkpoint_position[1] == "up":
-                    self.object.draw_specific_grayscale_tile(screen, checkpoint_position[0], "white", "checkpoint_up", 1)
+                    self.object.draw_specific_grayscale_tile(
+                        screen, checkpoint_position[0], "white", "checkpoint_up", 1
+                    )
                 elif checkpoint_position[1] == "down":
-                    self.object.draw_specific_grayscale_tile(screen, checkpoint_position[0], "white", "checkpoint_down", 3)
+                    self.object.draw_specific_grayscale_tile(
+                        screen, checkpoint_position[0], "white", "checkpoint_down", 3
+                    )
 
     def draw_animations(self, screen, var):
         surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
@@ -733,16 +982,44 @@ class Room:
             for y_values in self.data["map_data"]:
                 for values in y_values:
                     try:
-                        color  = values["color"]
+                        color = values["color"]
                     except KeyError:
                         pass
 
                     try:
                         if values["object"] is not None:
                             if values["object"] == 8:
-                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "conveyor", self.conveyors_animation)
+                                self.object.draw_specific_grayscale_tile(
+                                    surface,
+                                    (
+                                        self.x_position * 30,
+                                        self.y_position * 30
+                                    ),
+                                    color,
+                                    "conveyor",
+                                    self.conveyors_animation
+                                )
                             if values["object"] == 9:
-                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "conveyor", 4 + self.conveyors_animation)
+                                self.object.draw_specific_grayscale_tile(
+                                    surface,
+                                    (
+                                        self.x_position * 30,
+                                        self.y_position * 30
+                                    ),
+                                    color,
+                                    "conveyor",
+                                    4 + self.conveyors_animation
+                                )
+                            if values["object"] == 14:
+                                self.object.draw_tile(
+                                    surface,
+                                    (
+                                        self.x_position * 30,
+                                        self.y_position * 30
+                                    ),
+                                    "teleporters",
+                                    self.teleporter_animation
+                                )
                     except KeyError:
                         pass
                     self.x_position += 1
@@ -763,32 +1040,111 @@ class Room:
                 for y_values in self.data["map_data"]:
                     for values in y_values:
                         try:
-                            color  = values["color"]
+                            color = values["color"]
                         except KeyError:
                             pass
 
                         try:
                             if values["platform"] is not None:
-                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "platform", values["platform"])
+                                self.object.draw_specific_grayscale_tile(
+                                    surface,
+                                    (
+                                        self.x_position * 30,
+                                        self.y_position * 30
+                                    ),
+                                    color,
+                                    "platform",
+                                    values["platform"]
+                                )
                         except KeyError:
                             pass
                         try:
                             if values["background"] is not None:
-                                self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "background", values["background"])
+                                self.object.draw_specific_grayscale_tile(
+                                    surface,
+                                    (
+                                        self.x_position * 30,
+                                        self.y_position * 30
+                                    ),
+                                    color,
+                                    "background",
+                                    values["background"]
+                                )
                         except KeyError:
                             pass
                         try:
                             if values["object"] is not None:
-                                if values["object"] == 12 and (self.x_position * 30, self.y_position * 30) != var["checkpoint_position"][0]:
-                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), "gray", "checkpoint_up", 0)
-                                elif values["object"] == 13 and (self.x_position * 30, self.y_position * 30) != var["checkpoint_position"][0]:
-                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), "gray", "checkpoint_down", 2)
+                                if values["object"] == 12 and (
+                                    self.x_position * 30,
+                                    self.y_position * 30
+                                ) != var["checkpoint_position"][0]:
+                                    self.object.draw_specific_grayscale_tile(
+                                        surface,
+                                        (
+                                            self.x_position * 30,
+                                            self.y_position * 30
+                                        ),
+                                        "gray",
+                                        "checkpoint_up",
+                                        0
+                                    )
+                                elif values["object"] == 13 and (
+                                    self.x_position * 30,
+                                    self.y_position * 30
+                                ) != var["checkpoint_position"][0]:
+                                    self.object.draw_specific_grayscale_tile(
+                                        surface,
+                                        (
+                                            self.x_position * 30,
+                                            self.y_position * 30
+                                        ),
+                                        "gray",
+                                        "checkpoint_down",
+                                        2
+                                    )
                                 elif values["object"] == 12:
-                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), "gray", "checkpoint_up", 0)
+                                    self.object.draw_specific_grayscale_tile(
+                                        surface,
+                                        (
+                                            self.x_position * 30,
+                                            self.y_position * 30
+                                        ),
+                                        "gray",
+                                        "checkpoint_up",
+                                        0
+                                    )
                                 elif values["object"] == 13:
-                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), "gray", "checkpoint_down", 2)
+                                    self.object.draw_specific_grayscale_tile(
+                                        surface,
+                                        (
+                                            self.x_position * 30,
+                                            self.y_position * 30
+                                        ),
+                                        "gray",
+                                        "checkpoint_down",
+                                        2
+                                    )
+                                elif values["object"] == 14:
+                                    self.object.draw_tile(
+                                        surface,
+                                        (
+                                            self.x_position * 30,
+                                            self.y_position * 30
+                                        ),
+                                        "teleporters",
+                                        0
+                                    )
                                 else:
-                                    self.object.draw_specific_grayscale_tile(surface, (self.x_position * 30, self.y_position * 30), color, "object", values["object"])
+                                    self.object.draw_specific_grayscale_tile(
+                                        surface,
+                                        (
+                                            self.x_position * 30,
+                                            self.y_position * 30
+                                        ),
+                                        color,
+                                        "object",
+                                        values["object"]
+                                    )
                         except KeyError:
                             pass
                         self.x_position += 1
@@ -809,16 +1165,22 @@ class Room:
         try:
             if customtext is None:
                 try:
-                    text = var["fonts"]["little_generalfont"].render(self.data["roomname"], True, couleur_jeu["cyan"])
-                    screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
+                    text = var["fonts"]["little_generalfont"].render(
+                        self.data["roomname"], True, couleur_jeu["cyan"]
+                    )
+                    screen.blit(text, text.get_rect(center=(rect.width // 2, rect.y + 15)))
                 except KeyError:
                     pass
             else:
-                text = var["fonts"]["little_generalfont"].render(customtext, True, couleur_jeu["cyan"])
-                screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
+                text = var["fonts"]["little_generalfont"].render(
+                    customtext, True, couleur_jeu["cyan"]
+                )
+                screen.blit(text, text.get_rect(center=(rect.width // 2, rect.y + 15)))
         except TypeError:
-            text = var["fonts"]["little_generalfont"].render("This room is empty.", True, couleur_jeu["red"])
-            screen.blit(text, text.get_rect(center = (rect.width // 2, rect.y + 15)))
+            text = var["fonts"]["little_generalfont"].render(
+                "This room is empty.", True, couleur_jeu["red"]
+            )
+            screen.blit(text, text.get_rect(center=(rect.width // 2, rect.y + 15)))
 
     def get_roomname(self):
         try:
@@ -844,7 +1206,7 @@ class Room:
             if var["current_music"] != "presenting_vvvvvv":
                 var["current_music"] = "presenting_vvvvvv"
                 stop_music()
-                play_music(f"presenting_vvvvvv.ogg")
+                play_music("presenting_vvvvvv.ogg")
 
 
 class Editor:
@@ -873,36 +1235,46 @@ class Editor:
 
     def draw(self, screen, var):
         self.map.draw(screen, var)
- 
+
     def cursor_position(self, mouse_position):
-        for i in range((self.screen_size[0] // self.box_size) + 1):
-            for j in range((self.screen_size[1] // self.box_size) + 1):
-                if mouse_position[0] >= (i*self.box_size) - self.box_size and mouse_position[0] <= i*self.box_size:
-                    if mouse_position[1] >= (j*self.box_size) - self.box_size and mouse_position[1] <= j*self.box_size:
-                        if (i-1)*self.box_size >= 0 and (j-1)*self.box_size >= 0:
-                            self.cursor_rect_position = pygame.Rect((i-1)*self.box_size, (j-1)*self.box_size, self.box_size, self.box_size)
+        for i in range((self.screen_size[0] // 30) + 1):
+            for j in range((self.screen_size[1] // 30) + 1):
+                if mouse_position[0] >= (i * 30) - 30 and mouse_position[0] <= i * 30:
+                    if mouse_position[1] >= (j * 30) - 30 and mouse_position[1] <= j * 30:
+                        if (i - 1) * self.box_size >= 0 and (j - 1) * self.box_size >= 0:
+                            self.cursor_rect_position = pygame.Rect(
+                                (i - 1) * 30, (j - 1) * 30, self.box_size, self.box_size
+                            )
                             return self.cursor_rect_position
 
     def show_cursor(self, screen):
         pygame.draw.rect(screen, couleur_jeu["white"], self.cursor_rect_position, 2)
 
     def remove_object(self):
-        for i in range((self.screen_size[0] // self.box_size) + 1):
-            for j in range((self.screen_size[1] // self.box_size) + 1):
-                if i*self.box_size == self.cursor_rect_position.x and j*self.box_size == self.cursor_rect_position.y:
-                    self.map.update_data(j*self.model_box, i*self.model_box, type=self.object_type, order="remove")
+        for i in range((self.screen_size[0] // 30) + 1):
+            for j in range((self.screen_size[1] // 30) + 1):
+                if i * 30 == self.cursor_rect_position.x and j * 30 == self.cursor_rect_position.y:
+                    self.map.update_data(j, i, type=self.object_type, order="remove")
 
     def place_object(self):
-        for i in range((self.screen_size[0] // self.box_size) + 1):
-            for j in range((self.screen_size[1] // self.box_size) + 1):
-                if i*self.box_size == self.cursor_rect_position.x and j*self.box_size == self.cursor_rect_position.y:
-                    self.map.update_data(j*self.model_box, i*self.model_box, self.object_type, data=[self.object_selected, self.colors[0]], order="place")
+        for i in range((self.screen_size[0] // 30) + 1):
+            for j in range((self.screen_size[1] // 30) + 1):
+                if i * 30 == self.cursor_rect_position.x and j * 30 == self.cursor_rect_position.y:
+                    self.map.update_data(
+                        j, i, self.object_type, data=[
+                            self.object_selected, self.colors[0]
+                        ], order="place"
+                    )
 
     def change_current_object(self, object_selected, type):
         self.object_selected = object_selected
         if type == "object":
             if object_selected == 12 or object_selected == 13:
                 self.model_box = 2
+                self.box_size = 30 * self.model_box
+                return
+            elif object_selected == 14:
+                self.model_box = 8
                 self.box_size = 30 * self.model_box
                 return
         self.model_box = 1
@@ -931,6 +1303,7 @@ class Editor:
             test.insert(0, value)
             self.colors = test
 
+
 class SelectObjectMenu:
     def __init__(self):
         self.object = Object()
@@ -949,11 +1322,38 @@ class SelectObjectMenu:
         self.page_background = 0
         self.page_object = 0
         for platform in self.object.get_all_platforms():
-            self.all_platform_buttons.append([ImageButton(convert_PIL_to_pygame(platform), (57, 57), couleur_jeu["background"]), "platform"])
+            self.all_platform_buttons.append(
+                [
+                    ImageButton(
+                        convert_PIL_to_pygame(platform),
+                        (57, 57),
+                        couleur_jeu["background"]
+                    ),
+                    "platform"
+                ]
+            )
         for background in self.object.get_all_backgrounds():
-            self.all_backgrounds_buttons.append([ImageButton(convert_PIL_to_pygame(background), (57, 57), couleur_jeu["background"]), "background"])
+            self.all_backgrounds_buttons.append(
+                [
+                    ImageButton(
+                        convert_PIL_to_pygame(background),
+                        (57, 57),
+                        couleur_jeu["background"]
+                    ),
+                    "background"
+                ]
+            )
         for object in self.object.get_all_objects():
-            self.all_object_buttons.append([ImageButton(convert_PIL_to_pygame(object), (57, 57), couleur_jeu["background"]), "object"])
+            self.all_object_buttons.append(
+                [
+                    ImageButton(
+                        convert_PIL_to_pygame(object),
+                        (57, 57),
+                        couleur_jeu["background"]
+                    ),
+                    "object"
+                ]
+            )
 
     def exponential_anim(self):
         counter = self.counter_anim * 0.1005
@@ -969,26 +1369,48 @@ class SelectObjectMenu:
     def draw(self, screen, var):
         self.exponential_anim()
         surface = var["boxes"]["selector"].get_surface()
-        var["boxes"]["selector"].draw(screen,  (20, get_screen_size()[1] - (300 * self.select_box_y)))
+        var["boxes"]["selector"].draw(
+            screen,  (20, get_screen_size()[1] - (300 * self.select_box_y))
+        )
         if self.select_object_menu == "platform":
             if self.page_platform > 0:
-                var["buttons"]["page_left"].draw(screen, (230, get_screen_size()[1] - (130 * self.select_box_y)))
+                var["buttons"]["page_left"].draw(
+                    screen, (230, get_screen_size()[1] - (130 * self.select_box_y))
+                )
             if self.page_platform < len(self.object.get_all_platforms()) // 32:
-                var["buttons"]["page_right"].draw(screen, (897, get_screen_size()[1] - (130 * self.select_box_y)))
+                var["buttons"]["page_right"].draw(
+                    screen, (897, get_screen_size()[1] - (130 * self.select_box_y))
+                )
         elif self.select_object_menu == "background":
             if self.page_background > 0:
-                var["buttons"]["page_left"].draw(screen, (230, get_screen_size()[1] - (130 * self.select_box_y)))
+                var["buttons"]["page_left"].draw(
+                    screen, (230, get_screen_size()[1] - (130 * self.select_box_y))
+                )
             if self.page_background < len(self.object.get_all_backgrounds()) // 32:
-                var["buttons"]["page_right"].draw(screen, (897, get_screen_size()[1] - (130 * self.select_box_y)))
+                var["buttons"]["page_right"].draw(
+                    screen, (897, get_screen_size()[1] - (130 * self.select_box_y))
+                )
         elif self.select_object_menu == "object":
             if self.page_background > 0:
-                var["buttons"]["page_left"].draw(screen, (230, get_screen_size()[1] - (130 * self.select_box_y)))
+                var["buttons"]["page_left"].draw(
+                    screen, (230, get_screen_size()[1] - (130 * self.select_box_y))
+                )
             if self.page_background < len(self.object.get_all_backgrounds()) // 32:
-                var["buttons"]["page_right"].draw(screen, (897, get_screen_size()[1] - (130 * self.select_box_y)))
-        var["buttons"]["color_left"].draw(screen, (40, get_screen_size()[1] - (60 * self.select_box_y)))
-        var["buttons"]["color_right"].draw(screen, (170, get_screen_size()[1] - (60 * self.select_box_y)))
+                var["buttons"]["page_right"].draw(
+                    screen, (897, get_screen_size()[1] - (130 * self.select_box_y))
+                )
+        var["buttons"]["color_left"].draw(
+            screen, (40, get_screen_size()[1] - (60 * self.select_box_y))
+        )
+        var["buttons"]["color_right"].draw(
+            screen, (170, get_screen_size()[1] - (60 * self.select_box_y))
+        )
         screen.blit(var["texts"]["color"], (40, get_screen_size()[1] - (100 * self.select_box_y)))
-        pygame.draw.rect(screen, couleur_jeu[var["editor"].get_color_selected()], (100, get_screen_size()[1] - (65 * self.select_box_y), 50, 50))
+        pygame.draw.rect(
+            screen,
+            couleur_jeu[var["editor"].get_color_selected()],
+            (100, get_screen_size()[1] - (65 * self.select_box_y), 50, 50)
+        )
         pygame.draw.line(
             screen,
             couleur_jeu["blurple"],
@@ -1006,7 +1428,7 @@ class SelectObjectMenu:
         pygame.draw.line(
             screen,
             couleur_jeu["blurple"],
-            (230, get_screen_size()[1] - (210    * self.select_box_y)),
+            (230, get_screen_size()[1] - (210 * self.select_box_y)),
             (get_screen_size()[0] - 22, get_screen_size()[1] - (210 * self.select_box_y)),
             1
         )
@@ -1028,10 +1450,16 @@ class SelectObjectMenu:
                                     x_position = 270
                                     y_position += 57
                                 if self.select_object == id_platform:
-                                    self.all_platform_buttons[counter][0].change_color(couleur_jeu["cyan"])
+                                    self.all_platform_buttons[counter][0].change_color(
+                                        couleur_jeu["cyan"]
+                                    )
                                 else:
-                                    self.all_platform_buttons[counter][0].change_color(couleur_jeu["background"])
-                                self.all_platform_buttons[counter][0].draw(screen, (x_position, y_position))
+                                    self.all_platform_buttons[counter][0].change_color(
+                                        couleur_jeu["background"]
+                                    )
+                                self.all_platform_buttons[counter][0].draw(
+                                    screen, (x_position, y_position)
+                                )
                                 x_position += 57
                                 id_platform += 1
                     elif self.select_object_menu == "background":
@@ -1043,10 +1471,16 @@ class SelectObjectMenu:
                                     x_position = 270
                                     y_position += 57
                                 if self.select_object == id_background:
-                                    self.all_backgrounds_buttons[counter][0].change_color(couleur_jeu["cyan"])
+                                    self.all_backgrounds_buttons[counter][0].change_color(
+                                        couleur_jeu["cyan"]
+                                    )
                                 else:
-                                    self.all_backgrounds_buttons[counter][0].change_color(couleur_jeu["background"])
-                                self.all_backgrounds_buttons[counter][0].draw(screen, (x_position, y_position))
+                                    self.all_backgrounds_buttons[counter][0].change_color(
+                                        couleur_jeu["background"]
+                                    )
+                                self.all_backgrounds_buttons[counter][0].draw(
+                                    screen, (x_position, y_position)
+                                )
                                 x_position += 57
                                 id_background += 1
                     elif self.select_object_menu == "object":
@@ -1058,10 +1492,16 @@ class SelectObjectMenu:
                                     x_position = 270
                                     y_position += 57
                                 if self.select_object == id_object:
-                                    self.all_object_buttons[counter][0].change_color(couleur_jeu["cyan"])
+                                    self.all_object_buttons[counter][0].change_color(
+                                        couleur_jeu["cyan"]
+                                    )
                                 else:
-                                    self.all_object_buttons[counter][0].change_color(couleur_jeu["background"])
-                                self.all_object_buttons[counter][0].draw(screen, (x_position, y_position))
+                                    self.all_object_buttons[counter][0].change_color(
+                                        couleur_jeu["background"]
+                                    )
+                                self.all_object_buttons[counter][0].draw(
+                                    screen, (x_position, y_position)
+                                )
                                 x_position += 57
                                 id_object += 1
                 else:
@@ -1069,9 +1509,15 @@ class SelectObjectMenu:
             except IndexError:
                 pass
 
-        var["buttons"]["platform"].draw(screen, (250, get_screen_size()[1] - (283 * self.select_box_y)))
-        var["buttons"]["background"].draw(screen, (330, get_screen_size()[1] - (283 * self.select_box_y)))
-        var["buttons"]["object"].draw(screen, (410, get_screen_size()[1] - (283 * self.select_box_y)))
+        var["buttons"]["platform"].draw(
+            screen, (250, get_screen_size()[1] - (283 * self.select_box_y))
+        )
+        var["buttons"]["background"].draw(
+            screen, (330, get_screen_size()[1] - (283 * self.select_box_y))
+        )
+        var["buttons"]["object"].draw(
+            screen, (410, get_screen_size()[1] - (283 * self.select_box_y))
+        )
         self.reset_position()
         screen.blit(surface, (20, get_screen_size()[1] - (300 * self.select_box_y)))
 
@@ -1155,7 +1601,13 @@ class BGStars:
     def draw(self, screen):
         if self.starTime >= self.starRate:
             self.starTime = 0
-            self.stars.append([screen.get_width() + 5, random.randint(0, screen.get_height() - 32), random.randint(0, 50)])
+            self.stars.append(
+                [
+                    screen.get_width() + 5,
+                    random.randint(0, screen.get_height() - 32),
+                    random.randint(0, 50)
+                ]
+            )
 
         for (st, s) in enumerate(self.stars):
             pygame.draw.rect(screen, self.grey(255 - (s[2] * 5)), (s[0], s[1], 5, 5), 0)

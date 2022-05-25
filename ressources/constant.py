@@ -1,3 +1,5 @@
+# Constantes du jeu
+
 import pygame
 
 try:
