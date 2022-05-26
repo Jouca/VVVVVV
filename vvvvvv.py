@@ -80,14 +80,9 @@ def main():
         clock.tick(frame_per_second)
         pressed_key = pygame.key.get_pressed()
         var["clock"].tick()
-        if pressed_key[pygame.K_LEFT]:
-            var["left"] = True
-        else:
-            var["left"] = False
-        if pressed_key[pygame.K_RIGHT]:
-            var["right"] = True
-        else:
-            var["right"] = False
+
+        var["left"] = pressed_key[pygame.K_LEFT]
+        var["right"] = pressed_key[pygame.K_RIGHT]
 
         var = affichage_menu(var, screen, clock)
         var = controles(var)
