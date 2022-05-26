@@ -1,18 +1,17 @@
 import pygame
-from ressources.classes import MenuSelector, Room
-
-from ressources.functions import convert_PIL_to_pygame
 import os
 try:
     from constant import couleur, stars
     from colors import couleur_jeu
-    from functions import charger_ressource, play_sound, play_music
+    from functions import charger_ressource, play_sound, play_music, convert_PIL_to_pygame
     from functions import check_already_started, map_editor_process, create_map, crop
+    from classes import MenuSelector, Room
 except ModuleNotFoundError:
     from .constant import couleur, stars
     from .colors import couleur_jeu
-    from .functions import charger_ressource, play_sound, play_music
+    from .functions import charger_ressource, play_sound, play_music, convert_PIL_to_pygame
     from .functions import check_already_started, map_editor_process, create_map, crop
+    from .classes import MenuSelector, Room
 
 
 def update_fps(clock):

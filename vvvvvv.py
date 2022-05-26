@@ -1,11 +1,11 @@
 import pygame
 
-from ressources.constant import screen_size, DEBUG, couleur
-from ressources.inits import init_screen, init_fonts, init_menu_selectors, init_texts, init_boxes
-from ressources.inits import init_buttons
-from ressources.classes import UpParallax, SelectObjectMenu, Editor, Room, Player, Flash, Clock
-from ressources.functions import charger_ressource, play_music
-from ressources.menus import affichage_menu, controles
+from src.constant import screen_size, DEBUG, couleur
+from src.inits import init_screen, init_fonts, init_menu_selectors, init_texts, init_boxes
+from src.inits import init_buttons
+from src.classes import UpParallax, SelectObjectMenu, Editor, Room, Player, Flash, Clock
+from src.functions import charger_ressource, play_music
+from src.menus import affichage_menu, controles
 
 pygame.mixer.pre_init(frequency=44100, size=-16, channels=1, buffer=512)
 pygame.mixer.init()
