@@ -4,7 +4,7 @@ from src.constant import screen_size, DEBUG, couleur
 from src.inits import init_screen, init_fonts, init_menu_selectors, init_texts, init_boxes
 from src.inits import init_buttons
 from src.classes import UpParallax, SelectObjectMenu, Editor, Room, Player, Flash, Clock
-from src.functions import charger_ressource, play_music
+from src.functions import charger_ressource, play_music, check_appdata_folder
 from src.menus import affichage_menu, controles
 
 pygame.mixer.pre_init(frequency=44100, size=-16, channels=1, buffer=512)
@@ -23,6 +23,7 @@ def main():
     var = {
         "debug": DEBUG,
         "screen": screen,
+        "appdata": check_appdata_folder(),
         "screen_size": screen_size,
         "width": screen_size[0],
         "heigth": screen_size[1],
@@ -49,7 +50,7 @@ def main():
         "left_click": False,
         "right_click": False,
         "selectobjectmenu": SelectObjectMenu(),
-        "editor": Editor(screen_size, "history", [0, 0]),
+        "editor": Editor(screen_size, "history", [4, 9]),
         "room": Room("history", [4, 9]),
         "current_music": "menu",
         "players": {

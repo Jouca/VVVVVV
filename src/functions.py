@@ -1,5 +1,73 @@
-import pygame, json, os
+import pygame, json, os, gzip
 from PIL import Image, ImageOps
+try:
+    from officiallevels import OFFICIAL_LEVELS
+except ModuleNotFoundError:
+    from .officiallevels import OFFICIAL_LEVELS
+
+
+def empty_room():
+    return {
+        "map_data": [[{}]*32]*24,
+        "roomname": "",
+        "music": "presenting_vvvvvv"
+    }
+
+
+def check_appdata_folder():
+    """
+    Permet de crée le dossier data si il n'existe pas dans %appdata%.
+    """
+    data = "{}"
+    dir_path = '%s\\VVVVVV_Python\\' % os.environ['APPDATA']
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+        with open("%s\\levels.vvvvvv" % dir_path, "wb") as f:
+            f.write(gzip.compress(data.encode("utf-8")))
+    elif not os.path.exists("%s\\levels.vvvvvv" % dir_path):
+        with open("%s\\levels.vvvvvv" % dir_path, "wb") as f:
+            f.write(gzip.compress(data.encode("utf-8")))
+    return dir_path
+
+
+def read_appdata_levels():
+    """
+    Permet de lire le fichier des niveaux sauvegardé dans appdata.
+    """
+    with open("%s\\levels.vvvvvv" % check_appdata_folder(), "rb") as f:
+        return json.loads(gzip.decompress(f.read()).decode("utf-8"))
+
+
+def write_appdata_levels(name_map, coordinates, data):
+    """
+    Permet d'écrire des données sur le niveau présent dans le dossier appdata.
+    """
+    json_data = read_appdata_levels()
+    json_data[name_map][str(coordinates)] = data
+    jdata = json.dumps(json_data)
+    serial = jdata.encode('utf-8')
+    with open("%s\\levels.vvvvvv" % check_appdata_folder(), "wb") as f:
+        f.write(gzip.compress(serial))
+
+
+def read_ressources_levels(name_map):
+    """
+    Permet de lire les niveaux présent dans le fichier ressource.
+    """
+    with open(f"./ressources/maps/{name_map}.vvvvvv", "rb") as f:
+        return json.loads(gzip.decompress(f.read()).decode("utf-8"))
+
+
+def write_ressources_levels(name_map, coordinates, data):
+    """
+    Permet d'écrire des données sur le niveau présent dans le dossier ressource.
+    """
+    json_data = read_ressources_levels(name_map)
+    json_data[str(coordinates)] = data
+    jdata = json.dumps(json_data)
+    serial = jdata.encode('utf-8')
+    with open(f"./ressources/maps/{name_map}.vvvvvv", "wb") as f:
+        f.write(gzip.compress(serial))
 
 
 def charger_ressource(path):
@@ -49,19 +117,6 @@ def play_music(path):
     pygame.mixer.music.play(-1)
 
 
-def check_already_started():
-    """
-    Vérifie si le jeu a déjà été lancé.
-    """
-    with open("./ressources/data/data-histoire.vvvvvv", "r") as f:
-        data = json.load(f)
-    f.close()
-    if data["started"] == 1:
-        return True
-    else:
-        return False
-
-
 def crop(input, height, width, scale_size=None):
     im = Image.open(input)
     imgwidth, imgheight = im.size
@@ -78,44 +133,79 @@ def crop(input, height, width, scale_size=None):
 
 
 def create_map(name_map):
-    checked = True
-    count = 2
-    while checked:
-        if not os.path.isdir(name_map):
-            os.mkdir(f"./ressources/maps/{name_map}")
-            checked = False
-        else:
-            name_map = f"{name_map} ({count})"
-            count += 1
+    data = read_appdata_levels()
+    data[name_map] = {}
+    jdata = json.dumps(data)
+    serial = jdata.encode('utf-8')
+    with open("%s\\levels.vvvvvv" % check_appdata_folder(), "wb") as f:
+        f.write(gzip.compress(serial))
 
 
 def check_room_exist(name_map, coordinates):
-    if os.path.exists(f"./ressources/maps/{name_map}/{coordinates}.vvvvvv"):
+    if name_map in OFFICIAL_LEVELS:
+        if str(coordinates) in read_ressources_levels(name_map).keys():
+            return True
+    elif str(coordinates) in read_appdata_levels()[name_map].keys():
         return True
     return False
 
 
 def check_map_exist(name_map):
-    if os.path.isdir(f"./ressources/maps/{name_map}"):
+    if name_map in OFFICIAL_LEVELS:
+        if os.path.isdir(f"./ressources/maps/{name_map}.vvvvvv"):
+            return True
+    elif name_map in read_appdata_levels().keys():
         return True
     return False
 
 
 def create_data_room(name_map, coordinates):
-    room_strings = {"map_data":[[{}]*32]*24, "music":"presenting_vvvvvv"}
-    with open(f"./ressources/maps/{name_map}/{coordinates}.vvvvvv", "w") as f:
-        json.dump(room_strings, f)
-    f.close()
+    if name_map in OFFICIAL_LEVELS:
+        write_ressources_levels(name_map, coordinates, empty_room())
+    else:
+        write_appdata_levels(name_map, coordinates, empty_room())
 
 
 def read_room_data(name_map, coordinates):
-    with open(f"./ressources/maps/{name_map}/{coordinates}.vvvvvv", "r") as f:
-        data = json.load(f)
-    f.close()
-    return data
+    try:
+        if name_map in OFFICIAL_LEVELS:
+            return read_ressources_levels(name_map)[str(coordinates)]
+        else:
+            return read_appdata_levels()[name_map][str(coordinates)]
+    except KeyError:
+        return None
+
+
+def write_room_data(name_map, coordinates, data):
+    if name_map in OFFICIAL_LEVELS:
+        write_ressources_levels(name_map, coordinates, data)
+    else:
+        write_appdata_levels(name_map, coordinates, data)
+
+
+def check_not_empty_room(name_map):
+    if name_map in OFFICIAL_LEVELS:
+        map = read_ressources_levels(name_map)
+        map_temp = map.copy()
+        for room in map.keys():
+            if map[room]["map_data"] == empty_room()["map_data"]:
+                del map_temp[room]
+        with open (f"./ressources/maps/{name_map}.vvvvvv", "wb") as f:
+            f.write(gzip.compress(json.dumps(map_temp).encode("utf-8")))
+    else:
+        allmap = read_appdata_levels()
+        map = allmap[name_map]
+        map_temp = map.copy()
+        for room in map.keys():
+            if map[room]["map_data"] == empty_room()["map_data"]:
+                del map_temp[room]
+        allmap[name_map] = map_temp.copy()
+        with open("%s\\levels.vvvvvv" % check_appdata_folder(), "wb") as f:
+            f.write(gzip.compress(json.dumps(allmap).encode("utf-8")))
 
 
 def map_editor_process(name_map, coordinates):
+    check_not_empty_room(name_map)
     if check_map_exist(name_map):
         if check_room_exist(name_map, coordinates):
             return True

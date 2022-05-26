@@ -2,13 +2,16 @@ import json
 import pygame
 import random
 import math
+
 try:
     from functions import crop, convert_PIL_to_pygame, apply_color, get_screen_size, play_music
-    from functions import stop_music, play_sound
+    from functions import stop_music, play_sound, read_room_data, write_room_data, empty_room
+    from functions import create_data_room
     from colors import couleur_jeu, couleur_joueurs
 except ModuleNotFoundError:
     from .functions import crop, convert_PIL_to_pygame, apply_color, get_screen_size, play_music
-    from .functions import stop_music, play_sound
+    from .functions import stop_music, play_sound, read_room_data, write_room_data, empty_room
+    from .functions import create_data_room
     from .colors import couleur_jeu, couleur_joueurs
 
 
@@ -717,14 +720,14 @@ class MenuSelector:
         for i in self.menulist:
             if i[0] == self.menuselection[0]:
                 text = i[2].render(
-                    "[ " + i[0].upper() + " ]",
+                    "[ " + i[3].upper() + " ]",
                     True,
                     i[1]
                 )
                 self.screen.blit(text, (position[0], position[1] + const_y))
             else:
                 text = i[2].render(
-                    i[0],
+                    i[3],
                     True,
                     i[1]
                 )
@@ -765,23 +768,31 @@ class Room:
         self.teleporter_timeanimation = 0
         self.coordinates = coordinates
         try:
-            with open(f"./ressources/maps/{map_name}/{coordinates}.vvvvvv", "r") as f:
-                self.data = json.load(f)
-            f.close()
+            self.data = read_room_data(self.map_name, self.coordinates)
         except json.decoder.JSONDecodeError:
-            self.data = None
+            self.data = empty_room()
         except FileNotFoundError:
-            self.data = None
+            self.data = empty_room()
+
+    def refresh_room(self):
+        try:
+            self.data = read_room_data(self.map_name, self.coordinates)
+        except json.decoder.JSONDecodeError:
+            self.data = empty_room()
+        except FileNotFoundError:
+            self.data = empty_room()
+        
+        self.surface = None
+        self.coordinates = self.coordinates.copy()
 
     def change_room(self, coordinates, var):
         try:
-            with open(f"./ressources/maps/{self.map_name}/{coordinates}.vvvvvv", "r") as f:
-                self.data = json.load(f)
-            f.close()
+            self.data = read_room_data(self.map_name, coordinates)
         except json.decoder.JSONDecodeError:
-            self.data = None
+            self.data = empty_room()
         except FileNotFoundError:
-            self.data = None
+            self.data = empty_room()
+        
         try:
             if var["current_music"] != self.data["music"]:
                 var["current_music"] = self.data["music"]
@@ -922,19 +933,23 @@ class Room:
                     self.data["map_data"][x][y]["color"] = data[1]
             except IndexError:
                 pass
+            except TypeError:
+                create_data_room(self.map_name, self.coordinates)
+                self.refresh_room()
         elif order == "remove":
             try:
                 self.data["map_data"][x][y] = {}
             except KeyError:
                 pass
+            except TypeError:
+                create_data_room(self.map_name, self.coordinates)
+                self.refresh_room()
         else:
             self.data["map_data"][x][y] = {}
         self.surface = None
 
     def save_data(self, coordinates):
-        with open(f"./ressources/maps/{self.map_name}/{coordinates}.vvvvvv", "w") as f:
-            json.dump(self.data, f)
-        f.close()
+        write_room_data(self.map_name, coordinates, self.data)
 
     def reset_position(self):
         self.x_position = 0
@@ -1188,6 +1203,8 @@ class Room:
         except KeyError:
             self.data["roomname"] = ""
             return self.data["roomname"]
+        except TypeError:
+            return ""
 
     def write_roomname(self, key, action):
         if action == "backspace":

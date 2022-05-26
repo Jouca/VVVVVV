@@ -78,17 +78,17 @@ def init_texts(fonts):
             couleur["cyan_transparent"]
         ),
         "jouca_creator": fonts["small_generalfont"].render(
-            "Crée par Jouca / Diego",
+            "Created by Jouca / Diego",
             True,
             couleur["cyan"]
         ),
         "terry": fonts["verylittle_generalfont"].render(
-            "(Recréation de VVVVVV par Terry Cavanagh)",
+            "(Remake of VVVVVV by Terry Cavanagh)",
             True,
             couleur["cyan_transparent"]
         ),
         "color": fonts["verylittle_generalfont"].render(
-            "Couleur :",
+            "Color :",
             True,
             couleur["cyan"]
         ),
@@ -98,22 +98,22 @@ def init_texts(fonts):
             couleur["cyan"]
         ),
         "warnmenujeu1": fonts["verylittle_generalfont"].render(
-            "(Votre progression sera",
+            "(Your progress will be saved",
             True,
             couleur["white"]
         ),
         "warnmenujeu2": fonts["verylittle_generalfont"].render(
-            "sauvegardée si vous quittez)",
+            "if you leave)",
             True,
             couleur["white"]
         ),
         "typelevelname": fonts["normal_generalfont"].render(
-            "Nom du niveau :",
+            "Level name :",
             True,
             couleur["cyan"]
         ),
         "pressenter": fonts["little_generalfont"].render(
-            "Appuyez sur Entrée pour continuer",
+            "Press Enter to continue",
             True,
             couleur["white"]
         ),
@@ -129,41 +129,41 @@ def init_menu_selectors(font, screen):
         "principal": MenuSelector(
             screen,
             [
-                ["jouer", couleur["cyan"], font["little_generalfont"]],
-                ["en ligne", couleur["cyan"], font["little_generalfont"]],
-                ["debug", couleur["cyan"], font["little_generalfont"]] if DEBUG is True else None,
-                ["crédits", couleur["cyan"], font["little_generalfont"]],
-                ["quitter", couleur["cyan"], font["little_generalfont"]],
+                ["jouer", couleur["cyan"], font["little_generalfont"], "play"],
+                ["en ligne", couleur["cyan"], font["little_generalfont"], "online"],
+                ["debug", couleur["cyan"], font["little_generalfont"], "debug"] if DEBUG is True else None,
+                ["crédits", couleur["cyan"], font["little_generalfont"], "credits"],
+                ["quitter", couleur["cyan"], font["little_generalfont"], "quit"],
             ]
         ),
         "debug": MenuSelector(
             screen,
             [
-                ["éditeur histoire", couleur["cyan"], font["little_generalfont"]],
+                ["éditeur histoire", couleur["cyan"], font["little_generalfont"], "history editor"],
             ]
         ),
         "editeurmenu": MenuSelector(
             screen,
             [
-                ["continuer", couleur["cyan"], font["little_generalfont"]],
-                ["sauvegarder", couleur["cyan"], font["little_generalfont"]],
-                ["changer nom salle", couleur["cyan"], font["little_generalfont"]],
-                ["retour menu", couleur["cyan"], font["little_generalfont"]],
+                ["continuer", couleur["cyan"], font["little_generalfont"], "continue"],
+                ["sauvegarder", couleur["cyan"], font["little_generalfont"], "save"],
+                ["changer nom salle", couleur["cyan"], font["little_generalfont"], "change room name"],
+                ["retour menu", couleur["cyan"], font["little_generalfont"], "back to menu"],
             ]
         ),
         "menujeu": MenuSelector(
             screen,
             [
-                ["continuer", couleur["cyan"], font["little_generalfont"]],
-                ["retour menu", couleur["cyan"], font["little_generalfont"]],
+                ["continuer", couleur["cyan"], font["little_generalfont"], "continue"],
+                ["retour menu", couleur["cyan"], font["little_generalfont"], "back to menu"],
             ]
         ),
         "enligne": MenuSelector(
             screen,
             [
-                ["éditeur niveau", couleur["cyan"], font["little_generalfont"]],
-                ["jouer niveau", couleur["cyan"], font["little_generalfont"]],
-                ["retour", couleur["cyan"], font["little_generalfont"]],
+                ["éditeur niveau", couleur["cyan"], font["little_generalfont"], "level editor"],
+                ["jouer niveau", couleur["cyan"], font["little_generalfont"], "play level"],
+                ["retour", couleur["cyan"], font["little_generalfont"], "back"],
             ]
         ),
         "editeurniveau": MenuSelector(

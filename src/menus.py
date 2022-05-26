@@ -1,17 +1,22 @@
+from tkinter import OFF
 import pygame
 import os
 try:
     from constant import couleur, stars
     from colors import couleur_jeu
     from functions import charger_ressource, play_sound, play_music, convert_PIL_to_pygame
-    from functions import check_already_started, map_editor_process, create_map, crop
+    from functions import map_editor_process, create_map, crop, read_appdata_levels
+    from functions import check_not_empty_room
     from classes import MenuSelector, Room
+    from officiallevels import OFFICIAL_LEVELS
 except ModuleNotFoundError:
     from .constant import couleur, stars
     from .colors import couleur_jeu
     from .functions import charger_ressource, play_sound, play_music, convert_PIL_to_pygame
-    from .functions import check_already_started, map_editor_process, create_map, crop
+    from .functions import map_editor_process, create_map, crop, read_appdata_levels
+    from .functions import check_not_empty_room
     from .classes import MenuSelector, Room
+    from .officiallevels import OFFICIAL_LEVELS
 
 
 def update_fps(clock):
@@ -155,8 +160,8 @@ def affichage_create_level(screen, var):
     Affiche le menu de création de niveau.
     """
     var["menuBG"].draw()
-    screen.blit(var["texts"]["typelevelname"], (200, 150))
-    screen.blit(var["texts"]["pressenter"], (70, 550))
+    screen.blit(var["texts"]["typelevelname"], (260, 150))
+    screen.blit(var["texts"]["pressenter"], (180, 550))
     rect = pygame.Rect(70, 260, 800, 50)
     text = var["fonts"]["small_generalfont"].render(var["levelname"], True, couleur_jeu["white"])
     text_rect = text.get_rect(center=rect.center)
@@ -244,8 +249,8 @@ def affichage_menu_jeu(screen, var):
     var["boxes"]["menujeu"].draw(screen, (170, 130))
     var["menus"]["menujeu"].draw((300, 250), 40)
     screen.blit(var["texts"]["menu"], (380, 150))
-    screen.blit(var["texts"]["warnmenujeu1"], (230, 430))
-    screen.blit(var["texts"]["warnmenujeu2"], (190, 458))
+    screen.blit(var["texts"]["warnmenujeu1"], (190, 430))
+    screen.blit(var["texts"]["warnmenujeu2"], (340, 458))
     return var
 
 
@@ -274,7 +279,7 @@ def affichage_victory(screen, var):
         (rect.x + 20, rect.y)
     )
     death = var["fonts"]["small_generalfont"].render(
-        f"Morts : {var['deaths']}",
+        f"Deaths : {var['deaths']}",
         True,
         couleur_jeu["cyan"]
     )
@@ -287,7 +292,7 @@ def affichage_victory(screen, var):
     flip_rect = flip.get_rect(center=rect.center)
     clock = var['clock'].convert_time()
     timer = var["fonts"]["small_generalfont"].render(
-        f"Temps : {clock}",
+        f"Time : {clock}",
         True,
         couleur_jeu["cyan"]
     )
@@ -300,11 +305,12 @@ def affichage_victory(screen, var):
         screen.blit(timer, (timer_rect.x, 390))
     if var["victory_animation"] >= 830:
         press = var["fonts"]["absolutelittle_generalfont"].render(
-            "(Appuyer sur une touche pour continuer)",
+            "(Press a key to continue)",
             True,
             couleur_jeu["white"]
         )
-        screen.blit(press, (150, 510))
+        press_rect = press.get_rect(center=rect.center)
+        screen.blit(press, (press_rect.x, 510))
     return var
 
 
@@ -313,8 +319,8 @@ def affichage_menu_credits(screen, var):
     Affiche le menu des crédits.
     """
     var["menuBG"].draw()
-    screen.blit(var["texts"]["jouca_creator"], (110, 150))
-    screen.blit(var["texts"]["terry"], (75, 250))
+    screen.blit(var["texts"]["jouca_creator"], (60, 150))
+    screen.blit(var["texts"]["terry"], (100, 250))
     return var
 
 
@@ -355,17 +361,15 @@ def controles_principal(var, event):
         if event.key == pygame.K_RETURN:
             play_sound("menu.wav")
             if var["menus"]["principal"].menuselection[0] == "jouer":
-                if check_already_started():
-                    var["menuSelect"] = "play"
-                else:
-                    var["menuSelect"] = "jeu"
-                    var["coordinates"] = [4, 9]
-                    var["room"] = Room("history", [4, 9])
-                    var["clock"].reset()
-                    var["clock"].start_clock()
-                    var["room"].play_music(var)
-                    var["room"].change_room(var["coordinates"], var)
-                    var["players"]["viridian"].update_positions([433, 568])
+                var["menuSelect"] = "jeu"
+                var["coordinates"] = [4, 9]
+                var["room"] = Room("history", [4, 9])
+                check_not_empty_room("history")
+                var["clock"].reset()
+                var["clock"].start_clock()
+                var["room"].play_music(var)
+                var["room"].change_room(var["coordinates"], var)
+                var["players"]["viridian"].update_positions([433, 568])
             if var["menus"]["principal"].menuselection[0] == "en ligne":
                 var["menuSelect"] = "online"
             if var["menus"]["principal"].menuselection[0] == "debug":
@@ -396,13 +400,13 @@ def controles_en_ligne(var, event):
             if var["menus"]["enligne"].menuselection[0] == "retour":
                 var["menuSelect"] = "principal"
             elif var["menus"]["enligne"].menuselection[0] == "éditeur niveau":
-                levelmenu = [["crée niveau", couleur["white"], var["fonts"]["little_generalfont"]]]
-                for level in os.listdir('./ressources/maps'):
-                    if level != "history":
+                levelmenu = [["crée niveau", couleur["white"], var["fonts"]["little_generalfont"], "create level"]]
+                for level in read_appdata_levels().keys():
+                    if level not in OFFICIAL_LEVELS:
                         levelmenu.append(
-                            [level, couleur["cyan"], var["fonts"]["little_generalfont"]]
+                            [level, couleur["cyan"], var["fonts"]["little_generalfont"], level]
                         )
-                levelmenu.append(["retour", couleur["white"], var["fonts"]["little_generalfont"]])
+                levelmenu.append(["retour", couleur["white"], var["fonts"]["little_generalfont"], "back"])
                 var["menus"]["editeurniveau"] = MenuSelector(
                     var["screen"],
                     levelmenu,
@@ -410,12 +414,12 @@ def controles_en_ligne(var, event):
                 var["menuSelect"] = "niveauxediteur"
             elif var["menus"]["enligne"].menuselection[0] == "jouer niveau":
                 levelmenu = []
-                for level in os.listdir('./ressources/maps'):
-                    if level != "history":
+                for level in read_appdata_levels().keys():
+                    if level not in OFFICIAL_LEVELS:
                         levelmenu.append(
-                            [level, couleur["cyan"], var["fonts"]["little_generalfont"]]
+                            [level, couleur["cyan"], var["fonts"]["little_generalfont"], level]
                         )
-                levelmenu.append(["retour", couleur["white"], var["fonts"]["little_generalfont"]])
+                levelmenu.append(["retour", couleur["white"], var["fonts"]["little_generalfont"], "back"])
                 var["menus"]["jouerniveau"] = MenuSelector(
                     var["screen"],
                     levelmenu,
@@ -498,7 +502,7 @@ def controles_createlevel(var, event):
     """
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_ESCAPE:
-            var["menuSelect"] = "editeurniveau"
+            var["menuSelect"] = "niveauxediteur"
             var["levelname"] = ""
         elif event.key == pygame.K_BACKSPACE:
             var["levelname"] = var["levelname"][:-1]

@@ -1,7 +1,6 @@
 # Constantes du jeu
 
 import pygame
-
 try:
     from classes import Object, BGStars
 except ModuleNotFoundError:
