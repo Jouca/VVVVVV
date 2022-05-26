@@ -87,7 +87,6 @@ def main():
 
         var = affichage_menu(var, screen, clock)
         var = controles(var)
-    exit()
 
 
 # START GAME
