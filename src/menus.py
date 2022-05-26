@@ -353,6 +353,7 @@ def affichage_menu(var, screen, clock):
         font = pygame.font.SysFont("Arial", 18)
         screen.blit(update_fps(clock), (10, 0))
         screen.blit(font.render(str(var["coordinates"]), 1, pygame.Color(255, 255, 255)), (10, 20))
+        screen.blit(font.render(str(var["clock"].convert_time()), 1, pygame.Color(255, 255, 255)), (10, 40))
     pygame.display.flip()
     return var
 

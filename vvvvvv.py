@@ -75,6 +75,7 @@ def main():
         "clock": Clock()
     }
 
+    var["clock"].stop_clock()
     frame_per_second = 60
     play_music(f"{var['current_music']}.ogg")
     while var["jeu_en_cours"]:
