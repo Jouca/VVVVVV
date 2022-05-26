@@ -90,7 +90,7 @@ def affichage_editeur_menu(screen, var):
     )
     screen.blit(coordinates_show, (screen.get_width() - 155, 10))
     var["boxes"]["editeurmenu"].draw(screen, (170, 130))
-    var["menus"]["editeurmenu"].draw((200, 250), 40)
+    var["menus"]["editeurmenu"].draw((200, 250))
     rect = pygame.Rect(0, 720, screen.get_width(), screen.get_height() - 720)
     text = var["fonts"]["little_generalfont"].render(
         var["editor"].get_roomname(),
@@ -133,7 +133,7 @@ def affichage_menu_principal(screen, var):
     screen.blit(charger_ressource("/sprites/logo.png"), (200, 60))
     screen.blit(var["texts"]["subtitle"], (190, 150))
     screen.blit(var["texts"]["version"], (730, 750))
-    var["menus"]["principal"].draw((350, 300), 40)
+    var["menus"]["principal"].draw((350, 300))
     return var
 
 
@@ -142,7 +142,7 @@ def affichage_menu_en_ligne(screen, var):
     Affiche le menu en ligne.
     """
     var["menuBG"].draw()
-    var["menus"]["enligne"].draw((350, 300), 40)
+    var["menus"]["enligne"].draw((350, 300))
     return var
 
 
@@ -151,7 +151,7 @@ def affichage_menu_niveaux_editeur(screen, var):
     Affiche le menu des niveaux pouvant être ouvert dans l'éditeur.
     """
     var["menuBG"].draw()
-    var["menus"]["editeurniveau"].draw((350, 300), 40)
+    var["menus"]["editeurniveau"].draw_center((var["screen_size"][0] // 2, var["screen_size"][1] // 2))
     return var
 
 
@@ -174,7 +174,7 @@ def affichage_delete_level(screen, var):
     Affiche le menu de suppression de niveau.
     """
     var["menuBG"].draw()
-    var["menus"]["deletelevel"].draw((350, 300), 40)
+    var["menus"]["deletelevel"].draw_center((var["screen_size"][0] // 2, var["screen_size"][1] // 2))
     screen.blit(var["texts"]["selectdelete"], (140, 70))
     return var
 
@@ -184,7 +184,7 @@ def affichage_jouer_niveau(screen, var):
     Affiche le menu de jouer un niveau.
     """
     var["menuBG"].draw()
-    var["menus"]["jouerniveau"].draw((350, 300), 40)
+    var["menus"]["jouerniveau"].draw_center((var["screen_size"][0] // 2, var["screen_size"][1] // 2))
     return var
 
 
@@ -257,7 +257,7 @@ def affichage_menu_jeu(screen, var):
     """
     var = affichage_jeu(screen, var)
     var["boxes"]["menujeu"].draw(screen, (170, 130))
-    var["menus"]["menujeu"].draw((300, 250), 40)
+    var["menus"]["menujeu"].draw((300, 250))
     screen.blit(var["texts"]["menu"], (380, 150))
     screen.blit(var["texts"]["warnmenujeu1"], (190, 430))
     screen.blit(var["texts"]["warnmenujeu2"], (340, 458))
@@ -339,7 +339,7 @@ def affichage_menu_debug(screen, var):
     Affiche le menu debug.
     """
     var["menuBG"].draw()
-    var["menus"]["debug"].draw((240, 300), 40)
+    var["menus"]["debug"].draw((240, 300))
     return var
 
 
@@ -363,10 +363,8 @@ def controles_principal(var, event):
     """
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_UP:
-            play_sound("menu.wav")
             var["menus"]["principal"].selection_haut()
         if event.key == pygame.K_DOWN:
-            play_sound("menu.wav")
             var["menus"]["principal"].selection_bas()
         if event.key == pygame.K_RETURN:
             play_sound("menu.wav")
@@ -397,10 +395,8 @@ def controles_en_ligne(var, event):
     """
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_UP:
-            play_sound("menu.wav")
             var["menus"]["enligne"].selection_haut()
         if event.key == pygame.K_DOWN:
-            play_sound("menu.wav")
             var["menus"]["enligne"].selection_bas()
         if event.key == pygame.K_ESCAPE:
             play_sound("menu.wav")
@@ -445,10 +441,8 @@ def controles_niveaux_editeur(var, event):
     """
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_UP:
-            play_sound("menu.wav")
             var["menus"]["editeurniveau"].selection_haut()
         if event.key == pygame.K_DOWN:
-            play_sound("menu.wav")
             var["menus"]["editeurniveau"].selection_bas()
         if event.key == pygame.K_ESCAPE:
             play_sound("menu.wav")
@@ -493,10 +487,8 @@ def controles_niveaux_jouer(var, event):
     """
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_UP:
-            play_sound("menu.wav")
             var["menus"]["jouerniveau"].selection_haut()
         if event.key == pygame.K_DOWN:
-            play_sound("menu.wav")
             var["menus"]["jouerniveau"].selection_bas()
         if event.key == pygame.K_ESCAPE:
             play_sound("menu.wav")
@@ -557,10 +549,8 @@ def controles_delete_level(var, event):
         if event.key == pygame.K_ESCAPE:
             var["menuSelect"] = "niveauxediteur"
         if event.key == pygame.K_UP:
-            play_sound("menu.wav")
             var["menus"]["deletelevel"].selection_haut()
         if event.key == pygame.K_DOWN:
-            play_sound("menu.wav")
             var["menus"]["deletelevel"].selection_bas()
         if event.key == pygame.K_RETURN:
             play_sound("menu.wav")
@@ -659,10 +649,8 @@ def controles_menu_jeu(var, event):
         if event.key == pygame.K_ESCAPE:
             var["menuSelect"] = "jeu"
         if event.key == pygame.K_UP:
-            play_sound("menu.wav")
             var["menus"]["menujeu"].selection_haut()
         if event.key == pygame.K_DOWN:
-            play_sound("menu.wav")
             var["menus"]["menujeu"].selection_bas()
         if event.key == pygame.K_RETURN:
             play_sound("menu.wav")
@@ -856,10 +844,8 @@ def controles_editeur_menu(var, event):
         if event.key == pygame.K_ESCAPE:
             var["menuSelect"] = "editeur"
         if event.key == pygame.K_UP:
-            play_sound("menu.wav")
             var["menus"]["editeurmenu"].selection_haut()
         if event.key == pygame.K_DOWN:
-            play_sound("menu.wav")
             var["menus"]["editeurmenu"].selection_bas()
         if event.key == pygame.K_RETURN:
             play_sound("menu.wav")

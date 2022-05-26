@@ -710,12 +710,14 @@ class MenuSelector:
     def __init__(self, screen, menulist):
         self.screen = screen
         self.menulist = []
+        self.const_y_center = 40
+        self.index = 0
         for i in menulist:
             if i is not None:
                 self.menulist.append(i)
         self.menuselection = [i[0] for i in self.menulist]
 
-    def draw(self, position, space):
+    def draw(self, position):
         const_y = 0
         for i in self.menulist:
             if i[0] == self.menuselection[0]:
@@ -732,24 +734,51 @@ class MenuSelector:
                     i[1]
                 )
                 self.screen.blit(text, (position[0], position[1] + const_y))
-            const_y += space
+            const_y += 40
+
+    def draw_center(self, position):
+        space_jump = self.const_y_center * self.index
+        for i in self.menulist:
+            if i[0] == self.menuselection[0]:
+                text = i[2].render(
+                    "[ " + i[3].upper() + " ]",
+                    True,
+                    i[1]
+                )
+                self.screen.blit(text, (position[0] - text.get_width() // 2, position[1] + space_jump))
+            else:
+                text = i[2].render(
+                    i[3],
+                    True,
+                    i[1]
+                )
+                self.screen.blit(text, (position[0] - text.get_width() // 2, position[1] + space_jump))
+            space_jump += 40
 
     def selection_bas(self):
         """
         Permet de changer sélection de gauche à droite.
         """
+        play_sound("menu.wav")
         test = self.menuselection.copy()
         test.append(test.pop(0))
         self.menuselection = test
+        for i in range(len(self.menulist)):
+            if self.menulist[i][0] == self.menuselection[0]:
+                self.index = -i
 
     def selection_haut(self):
         """
         Permet de changer sélection de droite à gauche.
         """
+        play_sound("menu.wav")
         test = self.menuselection.copy()
         value = test.pop(-1)
         test.insert(0, value)
         self.menuselection = test
+        for i in range(len(self.menulist)):
+            if self.menulist[i][0] == self.menuselection[0]:
+                self.index = -i
 
     def get_menus(self):
         return self.menulist
