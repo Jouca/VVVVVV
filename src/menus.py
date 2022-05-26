@@ -6,7 +6,7 @@ try:
     from colors import couleur_jeu
     from functions import charger_ressource, play_sound, play_music, convert_PIL_to_pygame
     from functions import map_editor_process, create_map, crop, read_appdata_levels
-    from functions import check_not_empty_room
+    from functions import check_not_empty_room, delete_appdata_level
     from classes import MenuSelector, Room
     from officiallevels import OFFICIAL_LEVELS
 except ModuleNotFoundError:
@@ -14,7 +14,7 @@ except ModuleNotFoundError:
     from .colors import couleur_jeu
     from .functions import charger_ressource, play_sound, play_music, convert_PIL_to_pygame
     from .functions import map_editor_process, create_map, crop, read_appdata_levels
-    from .functions import check_not_empty_room
+    from .functions import check_not_empty_room, delete_appdata_level
     from .classes import MenuSelector, Room
     from .officiallevels import OFFICIAL_LEVELS
 
@@ -166,6 +166,16 @@ def affichage_create_level(screen, var):
     text = var["fonts"]["small_generalfont"].render(var["levelname"], True, couleur_jeu["white"])
     text_rect = text.get_rect(center=rect.center)
     screen.blit(text, text_rect)
+    return var
+
+
+def affichage_delete_level(screen, var):
+    """
+    Affiche le menu de suppression de niveau.
+    """
+    var["menuBG"].draw()
+    var["menus"]["deletelevel"].draw((350, 300), 40)
+    screen.blit(var["texts"]["selectdelete"], (140, 70))
     return var
 
 
@@ -406,6 +416,7 @@ def controles_en_ligne(var, event):
                         levelmenu.append(
                             [level, couleur["cyan"], var["fonts"]["little_generalfont"], level]
                         )
+                levelmenu.append(["supprimer", couleur["red"], var["fonts"]["little_generalfont"], "delete level"])
                 levelmenu.append(["retour", couleur["white"], var["fonts"]["little_generalfont"], "back"])
                 var["menus"]["editeurniveau"] = MenuSelector(
                     var["screen"],
@@ -448,6 +459,19 @@ def controles_niveaux_editeur(var, event):
                 var["menuSelect"] = "online"
             elif var["menus"]["editeurniveau"].menuselection[0] == "crée niveau":
                 var["menuSelect"] = "createlevel"
+            elif var["menus"]["editeurniveau"].menuselection[0] == "supprimer":
+                var["menuSelect"] = "deletelevel"
+                levelmenu = []
+                for level in read_appdata_levels().keys():
+                    if level not in OFFICIAL_LEVELS:
+                        levelmenu.append(
+                            [level, couleur["red"], var["fonts"]["little_generalfont"], level]
+                        )
+                levelmenu.append(["retour", couleur["white"], var["fonts"]["little_generalfont"], "back"])
+                var["menus"]["deletelevel"] = MenuSelector(
+                    var["screen"],
+                    levelmenu,
+                )
             else:
                 for button in var["menus"]["editeurniveau"].get_menus():
                     if button[0] == var["menus"]["editeurniveau"].menuselection[0]:
@@ -522,6 +546,44 @@ def controles_createlevel(var, event):
             var["editor"].change_room(var["coordinates"], var)
         else:
             var["levelname"] += event.unicode
+    return var
+
+
+def controles_delete_level(var, event):
+    """
+    Occupation des contrôles du menu suppression de niveaux.
+    """
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_ESCAPE:
+            var["menuSelect"] = "niveauxediteur"
+        if event.key == pygame.K_UP:
+            play_sound("menu.wav")
+            var["menus"]["deletelevel"].selection_haut()
+        if event.key == pygame.K_DOWN:
+            play_sound("menu.wav")
+            var["menus"]["deletelevel"].selection_bas()
+        if event.key == pygame.K_RETURN:
+            play_sound("menu.wav")
+            if var["menus"]["deletelevel"].menuselection[0] == "retour":
+                var["menuSelect"] = "niveauxediteur"
+            else:
+                for button in var["menus"]["deletelevel"].get_menus():
+                    if button[0] == var["menus"]["deletelevel"].menuselection[0]:
+                        delete_appdata_level(button[0])
+                        var["menuSelect"] = "niveauxediteur"
+                        play_sound("gamesaved.wav")
+                        levelmenu = [["crée niveau", couleur["white"], var["fonts"]["little_generalfont"], "create level"]]
+                        for level in read_appdata_levels().keys():
+                            if level not in OFFICIAL_LEVELS:
+                                levelmenu.append(
+                                    [level, couleur["cyan"], var["fonts"]["little_generalfont"], level]
+                                )
+                        levelmenu.append(["supprimer", couleur["red"], var["fonts"]["little_generalfont"], "delete level"])
+                        levelmenu.append(["retour", couleur["white"], var["fonts"]["little_generalfont"], "back"])
+                        var["menus"]["editeurniveau"] = MenuSelector(
+                            var["screen"],
+                            levelmenu,
+                        )
     return var
 
 
@@ -855,6 +917,7 @@ menus_affichage = {
     "niveauxediteur": affichage_menu_niveaux_editeur,
     "niveauxjouer": affichage_jouer_niveau,
     "createlevel": affichage_create_level,
+    "deletelevel": affichage_delete_level,
     "credits": affichage_menu_credits,
     "histoire": affichage_menu_histoire,
     "jeu": affichage_jeu,
@@ -872,6 +935,7 @@ menus_controles = {
     "niveauxediteur": controles_niveaux_editeur,
     "niveauxjouer": controles_niveaux_jouer,
     "createlevel": controles_createlevel,
+    "deletelevel": controles_delete_level,
     "credits": controles_credits,
     "histoire": controles_histoire,
     "jeu": controles_jeu,

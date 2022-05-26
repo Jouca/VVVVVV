@@ -117,6 +117,11 @@ def init_texts(fonts):
             True,
             couleur["white"]
         ),
+        "selectdelete": fonts["little_generalfont"].render(
+            "Select a level to delete it",
+            True,
+            couleur["red"]
+        ),
     }
     return texts
 
@@ -174,6 +179,10 @@ def init_menu_selectors(font, screen):
             screen,
             [],
         ),
+        "deletelevel": MenuSelector(
+            screen,
+            [],
+        )
     }
     return menu_selectors
 

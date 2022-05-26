@@ -50,6 +50,15 @@ def write_appdata_levels(name_map, coordinates, data):
         f.write(gzip.compress(serial))
 
 
+def delete_appdata_level(name_map):
+    data = read_appdata_levels()
+    del data[name_map]
+    jdata = json.dumps(data)
+    serial = jdata.encode('utf-8')
+    with open("%s\\levels.vvvvvv" % check_appdata_folder(), "wb") as f:
+        f.write(gzip.compress(serial))
+
+
 def read_ressources_levels(name_map):
     """
     Permet de lire les niveaux présent dans le fichier ressource.
@@ -194,14 +203,17 @@ def check_not_empty_room(name_map):
             f.write(gzip.compress(json.dumps(map_temp).encode("utf-8")))
     else:
         allmap = read_appdata_levels()
-        map = allmap[name_map]
-        map_temp = map.copy()
-        for room in map.keys():
-            if map[room]["map_data"] == empty_room()["map_data"]:
-                del map_temp[room]
-        allmap[name_map] = map_temp.copy()
-        with open("%s\\levels.vvvvvv" % check_appdata_folder(), "wb") as f:
-            f.write(gzip.compress(json.dumps(allmap).encode("utf-8")))
+        try:
+            map = allmap[name_map]
+            map_temp = map.copy()
+            for room in map.keys():
+                if map[room]["map_data"] == empty_room()["map_data"]:
+                    del map_temp[room]
+            allmap[name_map] = map_temp.copy()
+            with open("%s\\levels.vvvvvv" % check_appdata_folder(), "wb") as f:
+                f.write(gzip.compress(json.dumps(allmap).encode("utf-8")))
+        except KeyError:
+            pass
 
 
 def map_editor_process(name_map, coordinates):
