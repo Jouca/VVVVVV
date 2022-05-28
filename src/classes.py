@@ -2,7 +2,8 @@ import json
 import pygame
 import random
 import math
-
+import aiohttp
+import asyncio
 try:
     from functions import crop, convert_PIL_to_pygame, apply_color, get_screen_size, play_music
     from functions import stop_music, play_sound, read_room_data, write_room_data, empty_room
@@ -14,6 +15,27 @@ except ModuleNotFoundError:
     from .functions import create_data_room
     from .colors import couleur_jeu, couleur_joueurs
 
+
+class HTTPRequest:
+    """
+    Asynchronous HTTP Requests in Python with aiohttp and asyncio
+    """
+    def __init__(self, url, method="GET", data=None):
+        self.url = url
+        self.method = method
+        self.data = data
+
+    async def request(self):
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                self.method, self.url, data=self.data
+            ) as response:
+                return await response.read()
+    
+    def get_response(self):
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(self.request())
+    
 
 class Clock:
     """

@@ -1,13 +1,12 @@
-from tkinter import OFF
 import pygame
-import os
+import asyncio
 try:
     from constant import couleur, stars
     from colors import couleur_jeu
     from functions import charger_ressource, play_sound, play_music, convert_PIL_to_pygame
     from functions import map_editor_process, create_map, crop, read_appdata_levels
     from functions import check_not_empty_room, delete_appdata_level
-    from classes import MenuSelector, Room
+    from classes import MenuSelector, Room, HTTPRequest
     from officiallevels import OFFICIAL_LEVELS
 except ModuleNotFoundError:
     from .constant import couleur, stars
@@ -15,7 +14,7 @@ except ModuleNotFoundError:
     from .functions import charger_ressource, play_sound, play_music, convert_PIL_to_pygame
     from .functions import map_editor_process, create_map, crop, read_appdata_levels
     from .functions import check_not_empty_room, delete_appdata_level
-    from .classes import MenuSelector, Room
+    from .classes import MenuSelector, Room, HTTPRequest
     from .officiallevels import OFFICIAL_LEVELS
 
 
@@ -387,6 +386,9 @@ def controles_principal(var, event):
                 var["menuSelect"] = "credits"
             if var["menus"]["principal"].menuselection[0] == "quitter":
                 var["jeu_en_cours"] = False
+            if var["menus"]["principal"].menuselection[0] == "test":
+                test = HTTPRequest("https://www.similarweb.com/fr/top-websites/japan/")
+                print(test.get_response())
     return var
 
 

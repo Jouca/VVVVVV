@@ -139,6 +139,7 @@ def init_menu_selectors(font, screen):
                 ["debug", couleur["cyan"], font["little_generalfont"], "debug"] if DEBUG is True else None,
                 ["crédits", couleur["cyan"], font["little_generalfont"], "credits"],
                 ["quitter", couleur["cyan"], font["little_generalfont"], "quit"],
+                ["test", couleur["cyan"], font["little_generalfont"], "test"]
             ]
         ),
         "debug": MenuSelector(
